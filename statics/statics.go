@@ -9,7 +9,7 @@ import (
 	"log"
 )
 
-// FileInfo contains all necessary information about the sttically compile file.
+// FileInfo contains all necessary information about the statically compile file.
 type FileInfo struct {
 	Contents string
 }
@@ -54,7 +54,6 @@ func New(config *Config, m map[string]*FileInfo) *Files {
 	return &Files{
 		isProductionMode: config.IsProductionMode,
 		files:            m,
-		// decompressOnRetirieve: config.DecompressOnRetirieve,
 	}
 }
 
