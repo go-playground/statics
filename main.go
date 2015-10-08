@@ -158,7 +158,9 @@ func processFiles(dir string, isSymlinkDir bool, symlinkDir string) {
 			return err
 		}
 
-		gz.Flush()
+		// WTF! if don't close can't decrypt on the other side
+		// gz.Flush()
+		gz.Close()
 
 		// turn into base64
 		b64File := base64.StdEncoding.EncodeToString(gzBuff.Bytes())

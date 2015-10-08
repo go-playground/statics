@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"compress/gzip"
 	"encoding/base64"
-	"io"
 	"io/ioutil"
 	"log"
 )
@@ -36,19 +35,19 @@ func New(config *Config, m map[string]*FileInfo) *Files {
 		}
 
 		in := bytes.NewBuffer(b)
-		var buff bytes.Buffer
+
 		r, err := gzip.NewReader(in)
 		if err != nil {
-			log.Fatal(err)
+			log.Fatal("GZIP:", err)
 		}
-
 		defer r.Close()
-		_, err = io.Copy(&buff, r)
+
+		decrypted, err := ioutil.ReadAll(r)
 		if err != nil {
-			log.Fatal(err)
+			log.Fatal("IOUTIL:", err)
 		}
 
-		v.Contents = buff.String()
+		v.Contents = string(decrypted)
 	}
 
 	return &Files{
