@@ -16,24 +16,41 @@ import (
 )
 
 const (
-	helpString = `
-nothing yet
+	functionComments = "// NewStatic%s initializes a new static.Files instance for use"
+	initStartFile    = `package %s
+
+import "github.com/joeybloggs/statics/static"
+
+// NewStatic%s initializes a new static.Files instance for use
+func NewStatic%s(config *static.Config) (*static.Files, error) {
+
+	return static.New(config, map[string]*static.File{
 `
+	initEndfile = `})
+}`
 	startFile = `package %s
 
 import (
-	"github.com/joeybloggs/statics/statics"
+	"os"
+
+	"github.com/joeybloggs/statics/static"
 )
 
-func NewStatic%s(config *statics.Config) *statics.Files {
+// NewStatic%s initializes a new static.Files instance for use
+func NewStatic%s(config *static.Config) (*static.Files, error) {
 
-	return statics.New(config, map[string]*statics.FileInfo{
+	return static.New(config, map[string]*static.File{
 `
 	endfile = `},
 	)
 }`
-	mapEntry = `"%s" : {
-		Contents: "%s",
+	mapEntry = `%q : {
+		Path: %q,
+		Filename: "%s",
+		Filesize: %d,
+		FMode: os.FileMode(%d),
+		Modtime: %v,
+		Compressed: %s,
 	},
 `
 )
@@ -43,13 +60,9 @@ var (
 	flagOuputFile = flag.String("o", "", "Output File Path to write to")
 	flagPkg       = flag.String("pkg", "main", "Package name of the generated static file")
 	flagGroup     = flag.String("group", "assets", "The group name of the static files i.e. CSS, JS, Assets, HTML")
-	flagHelp      = flag.Bool("help", false, "-help")
+	flagInit      = flag.Bool("init", false, " determines if only initializing the static file without contents")
 	writer        *bufio.Writer
 )
-
-func help() {
-	fmt.Printf(helpString)
-}
 
 func main() {
 	parseFlags()
@@ -61,13 +74,19 @@ func main() {
 	}
 	defer f.Close()
 
+	funcName := strings.ToUpper((*flagGroup)[0:1]) + (*flagGroup)[1:]
+
 	writer = bufio.NewWriter(f)
 
-	writer.WriteString(fmt.Sprintf(startFile, *flagPkg, strings.ToUpper((*flagGroup)[0:1])+(*flagGroup)[1:]))
+	if *flagInit {
+		writer.WriteString(fmt.Sprintf(initStartFile, *flagPkg, funcName, funcName))
+		writer.WriteString(initEndfile)
+	} else {
+		writer.WriteString(fmt.Sprintf(startFile, *flagPkg, funcName, funcName))
+		processFiles(*flagStaticDir, false, "")
+		writer.WriteString(endfile)
+	}
 
-	processFiles(*flagStaticDir, false, "")
-
-	writer.WriteString(endfile)
 	writer.Flush()
 
 	f.Close()
@@ -83,29 +102,21 @@ func parseFlags() {
 
 	flag.Parse()
 
-	if *flagHelp {
-		help()
-		os.Exit(0)
-	}
-
 	s := filepath.Clean(*flagStaticDir)
 	flagStaticDir = &s
 
 	if len(*flagStaticDir) == 0 || *flagStaticDir == "." {
 		fmt.Printf("\n**invalid Static File Directoy '%s'\n", *flagStaticDir)
-		help()
 		os.Exit(1)
 	}
 
 	if len(*flagOuputFile) == 0 {
 		fmt.Printf("\n**invalid Output Directory '%s'\n", *flagOuputFile)
-		help()
 		os.Exit(1)
 	}
 
 	if len(*flagPkg) == 0 {
 		fmt.Printf("\n**invalid Package Name '%s'\n", *flagPkg)
-		help()
 		os.Exit(1)
 	}
 }
@@ -114,6 +125,11 @@ func parseFlags() {
 func processFiles(dir string, isSymlinkDir bool, symlinkDir string) {
 
 	walker := func(path string, info os.FileInfo, err error) error {
+
+		if info == nil {
+			fmt.Println(path)
+			fmt.Println(err)
+		}
 
 		if info.IsDir() {
 			return nil
@@ -140,8 +156,14 @@ func processFiles(dir string, isSymlinkDir bool, symlinkDir string) {
 			}
 		}
 
+		f, err := os.Open(path)
+		if err != nil {
+			fmt.Println(err)
+			return err
+		}
+
 		// read file
-		b, err := ioutil.ReadFile(path)
+		b, err := ioutil.ReadAll(f)
 		if err != nil {
 			fmt.Println(err)
 			return err
@@ -158,12 +180,23 @@ func processFiles(dir string, isSymlinkDir bool, symlinkDir string) {
 			return err
 		}
 
-		// WTF! if don't close can't decrypt on the other side
+		// Flush not quaranteed to flush, must close
 		// gz.Flush()
 		gz.Close()
 
-		// turn into base64
-		b64File := base64.StdEncoding.EncodeToString(gzBuff.Bytes())
+		// turn into chunked base64 string
+		var bb bytes.Buffer
+		b64 := base64.NewEncoder(base64.StdEncoding, &bb)
+		b64.Write(gzBuff.Bytes())
+		b64.Close()
+		b64File := "`\n"
+		chunk := make([]byte, 80)
+
+		for n, _ := bb.Read(chunk); n > 0; n, _ = bb.Read(chunk) {
+			b64File += string(chunk[0:n]) + "\n"
+		}
+
+		b64File += "`"
 
 		// read from realpath but key should be symlink one
 		if isSymlinkDir {
@@ -174,7 +207,13 @@ func processFiles(dir string, isSymlinkDir bool, symlinkDir string) {
 
 		fmt.Println("Processing:", path)
 
-		writer.WriteString(fmt.Sprintf(mapEntry, path, b64File))
+		fi, err := f.Stat()
+		if err != nil {
+			fmt.Println(err)
+			return err
+		}
+
+		writer.WriteString(fmt.Sprintf(mapEntry, path, path, fi.Name(), fi.Size(), fi.Mode(), fi.ModTime().Unix(), b64File))
 
 		return nil
 	}
