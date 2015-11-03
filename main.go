@@ -106,18 +106,15 @@ func parseFlags() {
 	flagStaticDir = &s
 
 	if len(*flagStaticDir) == 0 || *flagStaticDir == "." {
-		fmt.Printf("\n**invalid Static File Directoy '%s'\n", *flagStaticDir)
-		os.Exit(1)
+		panic("**invalid Static File Directoy '" + *flagStaticDir + "'")
 	}
 
 	if len(*flagOuputFile) == 0 {
-		fmt.Printf("\n**invalid Output Directory '%s'\n", *flagOuputFile)
-		os.Exit(1)
+		panic("**invalid Output Directory")
 	}
 
 	if len(*flagPkg) == 0 {
-		fmt.Printf("\n**invalid Package Name '%s'\n", *flagPkg)
-		os.Exit(1)
+		panic("**invalid Package Name")
 	}
 }
 
