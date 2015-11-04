@@ -24,7 +24,7 @@ import "github.com/joeybloggs/statics/static"
 // NewStatic%s initializes a new static.Files instance for use
 func NewStatic%s(config *static.Config) (*static.Files, error) {
 
-	return static.New(config, map[string]*static.File{
+	return static.New(config, &static.DirFile{
 `
 	initEndfile = `})
 }`
@@ -39,20 +39,28 @@ import (
 // NewStatic%s initializes a new static.Files instance for use
 func NewStatic%s(config *static.Config) (*static.Files, error) {
 
-	return static.New(config, map[string]*static.File{
-`
-	endfile = `},
-	)
+	return static.New(config, `
+	endfile = `)
 }`
-	mapEntry = `%q : {
-		Path: %q,
-		Filename: "%s",
-		Filesize: %d,
-		FMode: os.FileMode(%d),
-		Modtime: %v,
-		Compressed: %s,
-	},
+
+	dirFileEnd = `},
+}`
+
+	dirFileEndArray = `},
+},
 `
+)
+
+var (
+	dirFileStart = `&static.DirFile{
+		Path: %q,
+		Name: "%s",
+		Size: %d,
+		Mode: os.FileMode(%d),
+		ModTime: %v,
+		IsDir: %t,
+		Compressed: ` + "`\n%s`" + `,
+		Files: []*static.DirFile{`
 )
 
 var (
@@ -68,6 +76,7 @@ func main() {
 	parseFlags()
 
 	os.Remove(*flagOuputFile)
+
 	f, err := os.Create(*flagOuputFile)
 	if err != nil {
 		log.Fatal(err)
@@ -83,7 +92,7 @@ func main() {
 		writer.WriteString(initEndfile)
 	} else {
 		writer.WriteString(fmt.Sprintf(startFile, *flagPkg, funcName, funcName))
-		processFiles(*flagStaticDir, false, "")
+		processFiles(filepath.Clean(*flagStaticDir))
 		writer.WriteString(endfile)
 	}
 
@@ -118,52 +127,82 @@ func parseFlags() {
 	}
 }
 
+func processFiles(dir string) {
+
+	fi, err := os.Stat(dir)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	writer.WriteString(fmt.Sprintf(dirFileStart, dir, fi.Name(), fi.Size(), fi.Mode(), fi.ModTime().Unix(), true, ""))
+	processFilesRecursive(dir, "", false, "")
+	writer.WriteString(dirFileEnd)
+}
+
 // need isSymlinkDir variable as it is valid for symlinkDir to be blank
-func processFiles(dir string, isSymlinkDir bool, symlinkDir string) {
+func processFilesRecursive(path string, dir string, isSymlinkDir bool, symlinkDir string) {
 
-	walker := func(path string, info os.FileInfo, err error) error {
+	var b64File string
+	var p string
 
-		if info == nil {
-			fmt.Println(path)
-			fmt.Println(err)
+	f, err := os.Open(path)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	files, err := f.Readdir(0)
+
+	for _, file := range files {
+
+		info := file
+		b64File = ""
+		p = path + string(os.PathSeparator) + file.Name()
+		fPath := p
+
+		if isSymlinkDir {
+			fPath = strings.Replace(p, dir, symlinkDir, 1)
 		}
 
-		if info.IsDir() {
-			return nil
+		fmt.Println("Processing:", fPath)
+
+		if file.IsDir() {
+
+			// write out here
+			writer.WriteString(fmt.Sprintf(dirFileStart, fPath, info.Name(), info.Size(), info.Mode(), info.ModTime().Unix(), true, ""))
+			processFilesRecursive(p, p, isSymlinkDir, symlinkDir+string(os.PathSeparator)+info.Name())
+			writer.WriteString(dirFileEndArray)
+			continue
 		}
 
-		if info.Mode()&os.ModeSymlink == os.ModeSymlink {
+		if file.Mode()&os.ModeSymlink == os.ModeSymlink {
 
-			link, err := filepath.EvalSymlinks(path)
+			link, err := filepath.EvalSymlinks(p)
 			if err != nil {
-				fmt.Println("Error Resolving Symlink", err)
-				return err
+				log.Fatal("Error Resolving Symlink", err)
 			}
 
 			fi, err := os.Stat(link)
 			if err != nil {
-				fmt.Println(err)
-				return err
+				log.Fatal(err)
 			}
+
+			info = fi
 
 			if fi.IsDir() {
-				// call process files, otherwise just fall through and read file.
-				processFiles(link, true, path)
-				return nil
+				// write out here
+				writer.WriteString(fmt.Sprintf(dirFileStart, fPath, file.Name(), info.Size(), info.Mode(), info.ModTime().Unix(), true, ""))
+				processFilesRecursive(link, link, true, fPath)
+				writer.WriteString(dirFileEndArray)
+				continue
 			}
 		}
 
-		f, err := os.Open(path)
-		if err != nil {
-			fmt.Println(err)
-			return err
-		}
+		// if we get here it's a file
 
 		// read file
-		b, err := ioutil.ReadAll(f)
+		b, err := ioutil.ReadFile(p)
 		if err != nil {
-			fmt.Println(err)
-			return err
+			log.Fatal(err)
 		}
 
 		// gzip
@@ -173,8 +212,7 @@ func processFiles(dir string, isSymlinkDir bool, symlinkDir string) {
 
 		_, err = gz.Write(b)
 		if err != nil {
-			fmt.Println(err)
-			return err
+			log.Fatal(err)
 		}
 
 		// Flush not quaranteed to flush, must close
@@ -186,37 +224,15 @@ func processFiles(dir string, isSymlinkDir bool, symlinkDir string) {
 		b64 := base64.NewEncoder(base64.StdEncoding, &bb)
 		b64.Write(gzBuff.Bytes())
 		b64.Close()
-		b64File := "`\n"
+		// b64File += "\n"
 		chunk := make([]byte, 80)
 
 		for n, _ := bb.Read(chunk); n > 0; n, _ = bb.Read(chunk) {
 			b64File += string(chunk[0:n]) + "\n"
 		}
 
-		b64File += "`"
-
-		// read from realpath but key should be symlink one
-		if isSymlinkDir {
-			path = strings.Replace(path, dir, symlinkDir, 1)
-		}
-
-		path = strings.Replace(path, *flagStaticDir, filepath.Base(*flagStaticDir), 1)
-
-		fmt.Println("Processing:", path)
-
-		fi, err := f.Stat()
-		if err != nil {
-			fmt.Println(err)
-			return err
-		}
-
-		writer.WriteString(fmt.Sprintf(mapEntry, path, path, fi.Name(), fi.Size(), fi.Mode(), fi.ModTime().Unix(), b64File))
-
-		return nil
-	}
-
-	if err := filepath.Walk(dir, walker); err != nil {
-		fmt.Printf("\n**could not walk project path '%s'\n%s\n", *flagStaticDir, err)
-		os.Exit(1)
+		// write out here
+		writer.WriteString(fmt.Sprintf(dirFileStart, fPath, file.Name(), info.Size(), info.Mode(), info.ModTime().Unix(), false, b64File))
+		writer.WriteString(dirFileEndArray)
 	}
 }

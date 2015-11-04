@@ -5,13 +5,25 @@ import (
 	"compress/gzip"
 	"encoding/base64"
 	"errors"
-	"io"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"os"
 	"path"
 	"time"
 )
+
+// DirFile contains the static directory and file content info
+type DirFile struct {
+	Path       string
+	Name       string
+	Size       int64
+	Mode       os.FileMode
+	ModTime    int64
+	IsDir      bool
+	Compressed string
+	Files      []*DirFile
+}
 
 // Files contains a full instance of a static file collection
 type Files struct {
@@ -20,14 +32,14 @@ type Files struct {
 
 // File contains the static FileInfo
 type File struct {
-	data       []byte
-	Path       string
-	Filename   string
-	Filesize   int64
-	FMode      os.FileMode
-	Modtime    int64
-	Compressed string
-	isDir      bool
+	data    []byte
+	path    string
+	name    string
+	size    int64
+	mode    os.FileMode
+	modTime int64
+	isDir   bool
+	files   []*File
 }
 
 // Dir implements the FileSystem interface
@@ -64,42 +76,53 @@ func (dir Dir) Open(name string) (http.File, error) {
 }
 
 // File returns an http.File or error
-func (f *File) File() (http.File, error) {
+func (f File) File() (http.File, error) {
 
 	// if production read filesystem file
 	return &httpFile{
 		Reader: bytes.NewReader(f.data),
-		File:   f,
+		File:   &f,
 	}, nil
 }
 
 // Close closes the File, rendering it unusable for I/O. It returns an error, if any.
-func (f *File) Close() error {
+func (f File) Close() error {
 	return nil
 }
 
 // Readdir returns nil fileinfo and an error because the static FileSystem does not store directories
-func (f *File) Readdir(count int) ([]os.FileInfo, error) {
-	return nil, errors.New("not a directory")
+func (f File) Readdir(count int) ([]os.FileInfo, error) {
+
+	if !f.IsDir() {
+		return nil, errors.New("not a directory")
+	}
+
+	files := []os.FileInfo{}
+
+	for _, file := range f.files {
+		files = append(files, *file)
+	}
+
+	return files, nil
 }
 
 // Stat returns the FileInfo structure describing file. If there is an error, it will be of type *PathError.
-func (f *File) Stat() (os.FileInfo, error) {
+func (f File) Stat() (os.FileInfo, error) {
 	return f, nil
 }
 
 // Name returns the name of the file as presented to Open.
-func (f *File) Name() string {
-	return f.Filename
+func (f File) Name() string {
+	return f.name
 }
 
 // Size length in bytes for regular files; system-dependent for others
-func (f *File) Size() int64 {
-	return f.Filesize
+func (f File) Size() int64 {
+	return f.size
 }
 
 // Mode returns file mode bits
-func (f *File) Mode() os.FileMode {
+func (f File) Mode() os.FileMode {
 	mode := os.FileMode(0644)
 	if f.IsDir() {
 		return mode | os.ModeDir
@@ -109,48 +132,26 @@ func (f *File) Mode() os.FileMode {
 }
 
 // ModTime returns the files modification time
-func (f *File) ModTime() time.Time {
-	return time.Unix(f.Modtime, 0)
+func (f File) ModTime() time.Time {
+	return time.Unix(f.modTime, 0)
 }
 
 // IsDir reports whether f describes a directory.
-func (f *File) IsDir() bool {
+func (f File) IsDir() bool {
 	return f.isDir
 }
 
 // Sys returns the underlying data source (can return nil)
-func (f *File) Sys() interface{} {
+func (f File) Sys() interface{} {
 	return f
 }
 
 // New create a new static file instance.
-func New(config *Config, files map[string]*File) (*Files, error) {
+func New(config *Config, file *DirFile) (*Files, error) {
+	files := map[string]*File{}
 
 	if config.IsProductionMode {
-		var err error
-		var reader *gzip.Reader
-		var b64 io.Reader
-
-		for _, f := range files {
-
-			if f.Filesize == 0 {
-				continue
-			}
-
-			b64 = base64.NewDecoder(base64.StdEncoding, bytes.NewBufferString(f.Compressed))
-			reader, err = gzip.NewReader(b64)
-			if err != nil {
-				return nil, err
-			}
-
-			f.data, err = ioutil.ReadAll(reader)
-			if err != nil {
-				return nil, err
-			}
-
-			// original string should get garbage collected
-			f.Compressed = ""
-		}
+		processFiles(files, file)
 	}
 
 	return &Files{
@@ -160,6 +161,45 @@ func New(config *Config, files map[string]*File) (*Files, error) {
 			files:            files,
 		},
 	}, nil
+}
+
+func processFiles(files map[string]*File, file *DirFile) *File {
+
+	f := &File{
+		path:    file.Path,
+		name:    file.Name,
+		size:    file.Size,
+		mode:    file.Mode,
+		modTime: file.ModTime,
+		isDir:   file.IsDir,
+		files:   []*File{},
+	}
+
+	files[f.path] = f
+
+	if file.IsDir {
+		for _, dirFile := range file.Files {
+			resultFile := processFiles(files, dirFile)
+			f.files = append(f.files, resultFile)
+		}
+
+		return f
+	}
+
+	// decompress file contents
+
+	b64 := base64.NewDecoder(base64.StdEncoding, bytes.NewBufferString(file.Compressed))
+	reader, err := gzip.NewReader(b64)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	f.data, err = ioutil.ReadAll(reader)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return f
 }
 
 // FS returns an http.FileSystem object for serving files over http
