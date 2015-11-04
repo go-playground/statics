@@ -28,7 +28,8 @@ type DirFile struct {
 
 // Files contains a full instance of a static file collection
 type Files struct {
-	dir Dir
+	absPkgPath string
+	dir        Dir
 }
 
 // File contains the static FileInfo
@@ -57,7 +58,8 @@ type httpFile struct {
 
 // Config contains information about how extracting the data should behave
 type Config struct {
-	useStaticFiles bool
+	UseStaticFiles bool
+	AbsPkgPath     string // the Absolute package path used for local file reading when UseStaticFiles is false
 }
 
 // Open returns the FileSystem DIR
@@ -163,15 +165,21 @@ func (f file) Sys() interface{} {
 
 // New create a new static file instance.
 func New(config *Config, dirFile *DirFile) (*Files, error) {
+
 	files := map[string]*file{}
 
-	if config.useStaticFiles {
+	if config.UseStaticFiles {
 		processFiles(files, dirFile)
+	} else {
+		if len(config.AbsPkgPath) == 0 {
+			return nil, errors.New("AbsPkgPath is required when not using static files otherwise the static package has no idea where to grab local files from when your package is used from within another package.")
+		}
 	}
 
 	return &Files{
+		absPkgPath: config.AbsPkgPath,
 		dir: Dir{
-			useStaticFiles: config.useStaticFiles,
+			useStaticFiles: config.UseStaticFiles,
 			files:          files,
 		},
 	}, nil
@@ -235,3 +243,16 @@ func (f *Files) ReadFile(path string) ([]byte, error) {
 
 	return ioutil.ReadAll(file)
 }
+
+// ADD a READ All Dir Files instead of All File
+
+// // ReadFile returns a files contents as []byte from the filesystem, static or local
+// func (f *Files) ReadAllFile() ([]byte, error) {
+
+// 	file, err := f.dir.Open(path)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+
+// 	return ioutil.ReadAll(file)
+// }
