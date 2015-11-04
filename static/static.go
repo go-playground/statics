@@ -146,7 +146,6 @@ func (f File) Mode() os.FileMode {
 		return mode | os.ModeDir
 	}
 	return mode
-	// return 0
 }
 
 // ModTime returns the files modification time
@@ -205,7 +204,6 @@ func processFiles(files map[string]*File, file *DirFile) *File {
 	}
 
 	// decompress file contents
-
 	b64 := base64.NewDecoder(base64.StdEncoding, bytes.NewBufferString(file.Compressed))
 	reader, err := gzip.NewReader(b64)
 	if err != nil {
@@ -225,8 +223,13 @@ func (s *Files) FS() http.FileSystem {
 	return s.dir
 }
 
-// GetFile return a files contents as []byte from the filesystem, static or local
-func (s *Files) GetFile(name string) ([]byte, error) {
+// GetFile returns an http.File object
+func (s *Files) GetFile(name string) (http.File, error) {
+	return s.dir.Open(name)
+}
+
+// GetFileBytes return a files contents as []byte from the filesystem, static or local
+func (s *Files) GetFileBytes(name string) ([]byte, error) {
 	f, err := s.dir.Open(name)
 	if err != nil {
 		return nil, err
