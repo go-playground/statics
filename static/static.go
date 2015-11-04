@@ -230,7 +230,7 @@ func (s *Files) GetFile(name string) (http.File, error) {
 
 // GetFileBytes return a files contents as []byte from the filesystem, static or local
 func (s *Files) GetFileBytes(name string) ([]byte, error) {
-	f, err := s.dir.Open(name)
+	f, err := s.GetFile(name)
 	if err != nil {
 		return nil, err
 	}
