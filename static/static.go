@@ -5,6 +5,7 @@ import (
 	"compress/gzip"
 	"encoding/base64"
 	"errors"
+	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -32,14 +33,15 @@ type Files struct {
 
 // File contains the static FileInfo
 type File struct {
-	data    []byte
-	path    string
-	name    string
-	size    int64
-	mode    os.FileMode
-	modTime int64
-	isDir   bool
-	files   []*File
+	data         []byte
+	path         string
+	name         string
+	size         int64
+	mode         os.FileMode
+	modTime      int64
+	isDir        bool
+	files        []*File
+	lastDirIndex int
 }
 
 // Dir implements the FileSystem interface
@@ -97,10 +99,26 @@ func (f File) Readdir(count int) ([]os.FileInfo, error) {
 		return nil, errors.New("not a directory")
 	}
 
-	files := []os.FileInfo{}
+	var files []os.FileInfo
 
-	for _, file := range f.files {
-		files = append(files, *file)
+	if count <= 0 {
+		files = make([]os.FileInfo, len(f.files))
+		count = len(f.files)
+		f.lastDirIndex = 0
+	} else {
+		files = make([]os.FileInfo, count)
+	}
+
+	if f.lastDirIndex >= len(f.files) {
+		return nil, io.EOF
+	}
+
+	if count+f.lastDirIndex >= len(f.files) {
+		count = len(f.files)
+	}
+
+	for i := f.lastDirIndex; i < count; i++ {
+		files = append(files, *f.files[i])
 	}
 
 	return files, nil
