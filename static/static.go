@@ -32,7 +32,7 @@ type Files struct {
 }
 
 // File contains the static FileInfo
-type File struct {
+type file struct {
 	data         []byte
 	path         string
 	name         string
@@ -40,19 +40,19 @@ type File struct {
 	mode         os.FileMode
 	modTime      int64
 	isDir        bool
-	files        []*File
+	files        []*file
 	lastDirIndex int
 }
 
 // Dir implements the FileSystem interface
 type Dir struct {
 	useStaticFiles bool
-	files          map[string]*File
+	files          map[string]*file
 }
 
 type httpFile struct {
 	*bytes.Reader
-	*File
+	*file
 }
 
 // Config contains information about how extracting the data should behave
@@ -76,22 +76,22 @@ func (dir Dir) Open(name string) (http.File, error) {
 }
 
 // File returns an http.File or error
-func (f File) File() (http.File, error) {
+func (f file) File() (http.File, error) {
 
 	// if production read filesystem file
 	return &httpFile{
-		Reader: bytes.NewReader(f.data),
-		File:   &f,
+		bytes.NewReader(f.data),
+		&f,
 	}, nil
 }
 
 // Close closes the File, rendering it unusable for I/O. It returns an error, if any.
-func (f File) Close() error {
+func (f file) Close() error {
 	return nil
 }
 
 // Readdir returns nil fileinfo and an error because the static FileSystem does not store directories
-func (f File) Readdir(count int) ([]os.FileInfo, error) {
+func (f file) Readdir(count int) ([]os.FileInfo, error) {
 
 	if !f.IsDir() {
 		return nil, errors.New("not a directory")
@@ -123,22 +123,22 @@ func (f File) Readdir(count int) ([]os.FileInfo, error) {
 }
 
 // Stat returns the FileInfo structure describing file. If there is an error, it will be of type *PathError.
-func (f File) Stat() (os.FileInfo, error) {
+func (f file) Stat() (os.FileInfo, error) {
 	return f, nil
 }
 
 // Name returns the name of the file as presented to Open.
-func (f File) Name() string {
+func (f file) Name() string {
 	return f.name
 }
 
 // Size length in bytes for regular files; system-dependent for others
-func (f File) Size() int64 {
+func (f file) Size() int64 {
 	return f.size
 }
 
 // Mode returns file mode bits
-func (f File) Mode() os.FileMode {
+func (f file) Mode() os.FileMode {
 	mode := os.FileMode(0644)
 	if f.IsDir() {
 		return mode | os.ModeDir
@@ -147,26 +147,26 @@ func (f File) Mode() os.FileMode {
 }
 
 // ModTime returns the files modification time
-func (f File) ModTime() time.Time {
+func (f file) ModTime() time.Time {
 	return time.Unix(f.modTime, 0)
 }
 
 // IsDir reports whether f describes a directory.
-func (f File) IsDir() bool {
+func (f file) IsDir() bool {
 	return f.isDir
 }
 
 // Sys returns the underlying data source (can return nil)
-func (f File) Sys() interface{} {
+func (f file) Sys() interface{} {
 	return f
 }
 
 // New create a new static file instance.
-func New(config *Config, file *DirFile) (*Files, error) {
-	files := map[string]*File{}
+func New(config *Config, dirFile *DirFile) (*Files, error) {
+	files := map[string]*file{}
 
 	if config.useStaticFiles {
-		processFiles(files, file)
+		processFiles(files, dirFile)
 	}
 
 	return &Files{
@@ -177,23 +177,23 @@ func New(config *Config, file *DirFile) (*Files, error) {
 	}, nil
 }
 
-func processFiles(files map[string]*File, file *DirFile) *File {
+func processFiles(files map[string]*file, dirFile *DirFile) *file {
 
-	f := &File{
-		path:    file.Path,
-		name:    file.Name,
-		size:    file.Size,
-		mode:    file.Mode,
-		modTime: file.ModTime,
-		isDir:   file.IsDir,
-		files:   []*File{},
+	f := &file{
+		path:    dirFile.Path,
+		name:    dirFile.Name,
+		size:    dirFile.Size,
+		mode:    dirFile.Mode,
+		modTime: dirFile.ModTime,
+		isDir:   dirFile.IsDir,
+		files:   []*file{},
 	}
 
 	files[f.path] = f
 
-	if file.IsDir {
-		for _, dirFile := range file.Files {
-			resultFile := processFiles(files, dirFile)
+	if dirFile.IsDir {
+		for _, nestedFile := range dirFile.Files {
+			resultFile := processFiles(files, nestedFile)
 			f.files = append(f.files, resultFile)
 		}
 
@@ -201,7 +201,7 @@ func processFiles(files map[string]*File, file *DirFile) *File {
 	}
 
 	// decompress file contents
-	b64 := base64.NewDecoder(base64.StdEncoding, bytes.NewBufferString(file.Compressed))
+	b64 := base64.NewDecoder(base64.StdEncoding, bytes.NewBufferString(dirFile.Compressed))
 	reader, err := gzip.NewReader(b64)
 	if err != nil {
 		log.Fatal(err)
@@ -216,32 +216,22 @@ func processFiles(files map[string]*File, file *DirFile) *File {
 }
 
 // FS returns an http.FileSystem object for serving files over http
-func (s *Files) FS() http.FileSystem {
-	return s.dir
+func (f *Files) FS() http.FileSystem {
+	return f.dir
 }
 
-// GetFile returns an http.File object
-func (s *Files) GetFile(name string) (http.File, error) {
-	return s.dir.Open(name)
+// GetHTTPFile returns an http.File object
+func (f *Files) GetHTTPFile(name string) (http.File, error) {
+	return f.dir.Open(name)
 }
 
-// GetFileBytes return a files contents as []byte from the filesystem, static or local
-func (s *Files) GetFileBytes(name string) ([]byte, error) {
-	f, err := s.GetFile(name)
+// ReadFile returns a files contents as []byte from the filesystem, static or local
+func (f *Files) ReadFile(path string) ([]byte, error) {
+
+	file, err := f.dir.Open(path)
 	if err != nil {
 		return nil, err
 	}
 
-	return ioutil.ReadAll(f)
-}
-
-// GetFileString return a files contents as string from the filesystem, static or local
-func (s *Files) GetFileString(name string) (string, error) {
-
-	b, err := s.GetFileBytes(name)
-	if err != nil {
-		return "", err
-	}
-
-	return string(b), nil
+	return ioutil.ReadAll(file)
 }
