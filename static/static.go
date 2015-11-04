@@ -240,12 +240,8 @@ func (s *Files) GetFileBytes(name string) ([]byte, error) {
 
 // GetFileString return a files contents as string from the filesystem, static or local
 func (s *Files) GetFileString(name string) (string, error) {
-	f, err := s.dir.Open(name)
-	if err != nil {
-		return "", err
-	}
 
-	b, err := ioutil.ReadAll(f)
+	b, err := s.GetFileBytes(name)
 	if err != nil {
 		return "", err
 	}
