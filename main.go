@@ -67,7 +67,7 @@ var (
 	flagStaticDir = flag.String("i", "static", "Static File Directory to compile")
 	flagOuputFile = flag.String("o", "", "Output File Path to write to")
 	flagPkg       = flag.String("pkg", "main", "Package name of the generated static file")
-	flagGroup     = flag.String("group", "assets", "The group name of the static files i.e. CSS, JS, Assets, HTML")
+	flagGroup     = flag.String("group", "Assets", "The group name of the static files i.e. CSS, JS, Assets, HTML")
 	flagInit      = flag.Bool("init", false, " determines if only initializing the static file without contents")
 	writer        *bufio.Writer
 )
