@@ -46,9 +46,8 @@ type File struct {
 
 // Dir implements the FileSystem interface
 type Dir struct {
-	name             string
-	isProductionMode bool
-	files            map[string]*File
+	useStaticFiles bool
+	files          map[string]*File
 }
 
 type httpFile struct {
@@ -58,14 +57,13 @@ type httpFile struct {
 
 // Config contains information about how extracting the data should behave
 type Config struct {
-	IsProductionMode bool
-	Name             string
+	useStaticFiles bool
 }
 
 // Open returns the FileSystem DIR
 func (dir Dir) Open(name string) (http.File, error) {
 
-	if dir.isProductionMode {
+	if dir.useStaticFiles {
 		f, found := dir.files[path.Clean(name)]
 		if !found {
 			return nil, os.ErrNotExist
@@ -167,15 +165,14 @@ func (f File) Sys() interface{} {
 func New(config *Config, file *DirFile) (*Files, error) {
 	files := map[string]*File{}
 
-	if config.IsProductionMode {
+	if config.useStaticFiles {
 		processFiles(files, file)
 	}
 
 	return &Files{
 		dir: Dir{
-			name:             config.Name,
-			isProductionMode: config.IsProductionMode,
-			files:            files,
+			useStaticFiles: config.useStaticFiles,
+			files:          files,
 		},
 	}, nil
 }
