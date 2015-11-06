@@ -261,9 +261,9 @@ func (f *Files) ReadFile(filename string) ([]byte, error) {
 	return ioutil.ReadAll(file)
 }
 
-// ReadDir reads the directory named by dirname and returns
+// Readdir reads the directory named by dirname and returns
 // a list of sorted directory entries.
-func (f *Files) ReadDir(dirname string) ([]os.FileInfo, error) {
+func (f *Files) Readdir(dirname string) ([]os.FileInfo, error) {
 
 	file, err := f.dir.Open(f.determinePath(dirname))
 	if err != nil {
