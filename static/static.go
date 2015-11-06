@@ -11,8 +11,17 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"path/filepath"
+	"sort"
 	"time"
 )
+
+// byName implements sort.Interface.
+type byName []os.FileInfo
+
+func (f byName) Len() int           { return len(f) }
+func (f byName) Less(i, j int) bool { return f[i].Name() < f[j].Name() }
+func (f byName) Swap(i, j int)      { f[i], f[j] = f[j], f[i] }
 
 // DirFile contains the static directory and file content info
 type DirFile struct {
@@ -171,7 +180,7 @@ func New(config *Config, dirFile *DirFile) (*Files, error) {
 	if config.UseStaticFiles {
 		processFiles(files, dirFile)
 	} else {
-		if len(config.AbsPkgPath) == 0 {
+		if !filepath.IsAbs(config.AbsPkgPath) {
 			return nil, errors.New("AbsPkgPath is required when not using static files otherwise the static package has no idea where to grab local files from when your package is used from within another package.")
 		}
 	}
@@ -228,15 +237,23 @@ func (f *Files) FS() http.FileSystem {
 	return f.dir
 }
 
+func (f *Files) determinePath(name string) string {
+	if f.dir.useStaticFiles {
+		return name
+	}
+
+	return f.absPkgPath + name
+}
+
 // GetHTTPFile returns an http.File object
-func (f *Files) GetHTTPFile(name string) (http.File, error) {
-	return f.dir.Open(name)
+func (f *Files) GetHTTPFile(filename string) (http.File, error) {
+	return f.dir.Open(f.determinePath(filename))
 }
 
 // ReadFile returns a files contents as []byte from the filesystem, static or local
-func (f *Files) ReadFile(path string) ([]byte, error) {
+func (f *Files) ReadFile(filename string) ([]byte, error) {
 
-	file, err := f.dir.Open(path)
+	file, err := f.dir.Open(f.determinePath(filename))
 	if err != nil {
 		return nil, err
 	}
@@ -244,15 +261,81 @@ func (f *Files) ReadFile(path string) ([]byte, error) {
 	return ioutil.ReadAll(file)
 }
 
-// ADD a READ All Dir Files instead of All File
+// ReadDir reads the directory named by dirname and returns
+// a list of sorted directory entries.
+func (f *Files) ReadDir(dirname string) ([]os.FileInfo, error) {
 
-// // ReadFile returns a files contents as []byte from the filesystem, static or local
-// func (f *Files) ReadAllFile() ([]byte, error) {
+	file, err := f.dir.Open(f.determinePath(dirname))
+	if err != nil {
+		return nil, err
+	}
 
-// 	file, err := f.dir.Open(path)
-// 	if err != nil {
-// 		return nil, err
-// 	}
+	results, err := file.Readdir(-1)
+	if err != nil {
+		return nil, err
+	}
 
-// 	return ioutil.ReadAll(file)
-// }
+	sort.Sort(byName(results))
+
+	return results, nil
+}
+
+// ReadFiles returns a directories file contents as a map[string][]byte from the filesystem, static or local
+func (f *Files) ReadFiles(dirname string, recursive bool) (map[string][]byte, error) {
+
+	dirname = f.determinePath(dirname)
+
+	results := map[string][]byte{}
+
+	file, err := f.dir.Open(dirname)
+	if err != nil {
+		return nil, err
+	}
+
+	if err = f.readFilesRecursive(dirname, file, results, recursive); err != nil {
+		return nil, err
+	}
+
+	return results, nil
+}
+
+func (f *Files) readFilesRecursive(dirname string, file http.File, results map[string][]byte, recursive bool) error {
+
+	files, err := file.Readdir(-1)
+	if err != nil {
+		return err
+	}
+
+	var fpath string
+
+	for _, fi := range files {
+
+		fpath = dirname + fi.Name()
+
+		newFile, err := f.dir.Open(fpath)
+		if err != nil {
+			return err
+		}
+
+		if fi.IsDir() {
+
+			if !recursive {
+				continue
+			}
+
+			err := f.readFilesRecursive(fpath, newFile, results, recursive)
+			if err != nil {
+				return err
+			}
+
+			continue
+		}
+
+		results[fpath], err = ioutil.ReadAll(newFile)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
