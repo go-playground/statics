@@ -45,8 +45,10 @@ Embedding in Source Control
 
 Example Usage
 ```go
-	// generated via command: statics -i=assets -o=assets.go -pkg=main -group=Assets -ignore=//.gitignore
-	gopath := getGopath() // retrieves from environment variable
+	// generated via command: 
+	// statics -i=assets -o=assets.go -pkg=main -group=Assets -ignore=//.gitignore
+
+	gopath := getGopath() // retrieved from environment variable
 	pkgPath := "/src/github.com/username/project"
 
 	// get absolute directory path of the -i arguments parent directory, used when UseStaticFiles=false
