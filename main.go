@@ -24,8 +24,8 @@ const (
 
 import "github.com/joeybloggs/statics/static"
 
-// NewStatic%s initializes a new *static.Files instance for use
-func NewStatic%s(config *static.Config) (*static.Files, error) {
+// newStatic%s initializes a new *static.Files instance for use
+func newStatic%s(config *static.Config) (*static.Files, error) {
 
 	return static.New(config, &static.DirFile{
 `
@@ -41,8 +41,8 @@ import (
 	"github.com/joeybloggs/statics/static"
 )
 
-// NewStatic%s initializes a new *static.Files instance for use
-func NewStatic%s(config *static.Config) (*static.Files, error) {
+// newStatic%s initializes a new *static.Files instance for use
+func newStatic%s(config *static.Config) (*static.Files, error) {
 
 	return static.New(config, `
 	endfile = `)
