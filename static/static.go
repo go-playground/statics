@@ -42,7 +42,7 @@ type DirFile struct {
 // Files contains a full instance of a static file collection
 type Files struct {
 	absPkgPath string
-	dir        Dir
+	dir        dir
 }
 
 // File contains the static FileInfo
@@ -58,8 +58,8 @@ type file struct {
 	lastDirIndex int
 }
 
-// Dir implements the FileSystem interface
-type Dir struct {
+// dir implements the FileSystem interface
+type dir struct {
 	useStaticFiles bool
 	files          map[string]*file
 }
@@ -76,10 +76,10 @@ type Config struct {
 }
 
 // Open returns the FileSystem DIR
-func (dir Dir) Open(name string) (http.File, error) {
+func (d dir) Open(name string) (http.File, error) {
 
-	if dir.useStaticFiles {
-		f, found := dir.files[path.Clean(name)]
+	if d.useStaticFiles {
+		f, found := d.files[path.Clean(name)]
 		if !found {
 			return nil, os.ErrNotExist
 		}
@@ -197,7 +197,7 @@ func New(config *Config, dirFile *DirFile) (*Files, error) {
 
 	return &Files{
 		absPkgPath: config.AbsPkgPath,
-		dir: Dir{
+		dir: dir{
 			useStaticFiles: config.UseStaticFiles,
 			files:          files,
 		},
