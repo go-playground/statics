@@ -12,23 +12,28 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 )
 
 const (
 	functionComments = "// NewStatic%s initializes a new static.Files instance for use"
-	initStartFile    = `package %s
+	initStartFile    = `//go:generate statics -i=%s -o=%s -pkg=%s -group=%s %s %s
+
+	package %s
 
 import "github.com/joeybloggs/statics/static"
 
-// NewStatic%s initializes a new static.Files instance for use
+// NewStatic%s initializes a new *static.Files instance for use
 func NewStatic%s(config *static.Config) (*static.Files, error) {
 
 	return static.New(config, &static.DirFile{
 `
 	initEndfile = `})
 }`
-	startFile = `package %s
+	startFile = `//go:generate statics -i=%s -o=%s -pkg=%s -group=%s %s %s
+
+	package %s
 
 import (
 	"os"
@@ -36,7 +41,7 @@ import (
 	"github.com/joeybloggs/statics/static"
 )
 
-// NewStatic%s initializes a new static.Files instance for use
+// NewStatic%s initializes a new *static.Files instance for use
 func NewStatic%s(config *static.Config) (*static.Files, error) {
 
 	return static.New(config, `
@@ -64,12 +69,19 @@ var (
 )
 
 var (
+
+	// Add ignore && remove prefix for file generation
+
 	flagStaticDir = flag.String("i", "static", "Static File Directory to compile")
 	flagOuputFile = flag.String("o", "", "Output File Path to write to")
 	flagPkg       = flag.String("pkg", "main", "Package name of the generated static file")
 	flagGroup     = flag.String("group", "Assets", "The group name of the static files i.e. CSS, JS, Assets, HTML")
+	flagIgnore    = flag.String("ignore", "", "Regexp for files/dirs we should ignore i.e. \\.gitignore")
+	flagPrefix    = flag.String("prefix", "", "Prefix to strip from file paths")
 	flagInit      = flag.Bool("init", false, " determines if only initializing the static file without contents")
-	writer        *bufio.Writer
+
+	ignoreRegexp *regexp.Regexp
+	writer       *bufio.Writer
 )
 
 func main() {
@@ -87,11 +99,22 @@ func main() {
 
 	writer = bufio.NewWriter(f)
 
+	ignoreFlag := ""
+	prefixFlag := ""
+
+	if len(*flagIgnore) > 0 {
+		ignoreFlag = "-ignore=" + *flagIgnore
+	}
+
+	if len(*flagPrefix) > 0 {
+		prefixFlag = "-prefix=" + *flagPrefix
+	}
+
 	if *flagInit {
-		writer.WriteString(fmt.Sprintf(initStartFile, *flagPkg, funcName, funcName))
+		writer.WriteString(fmt.Sprintf(initStartFile, *flagStaticDir, *flagOuputFile, *flagPkg, *flagGroup, ignoreFlag, prefixFlag, *flagPkg, funcName, funcName))
 		writer.WriteString(initEndfile)
 	} else {
-		writer.WriteString(fmt.Sprintf(startFile, *flagPkg, funcName, funcName))
+		writer.WriteString(fmt.Sprintf(startFile, *flagStaticDir, *flagOuputFile, *flagPkg, *flagGroup, ignoreFlag, prefixFlag, *flagPkg, funcName, funcName))
 		processFiles(filepath.Clean(*flagStaticDir))
 		writer.WriteString(endfile)
 	}
@@ -124,6 +147,16 @@ func parseFlags() {
 
 	if len(*flagPkg) == 0 {
 		panic("**invalid Package Name")
+	}
+
+	if len(*flagIgnore) > 0 {
+
+		var err error
+
+		ignoreRegexp, err = regexp.Compile(*flagIgnore)
+		if err != nil {
+			panic("**Error Compiling Regex:" + err.Error())
+		}
 	}
 }
 
@@ -163,7 +196,11 @@ func processFilesRecursive(path string, dir string, isSymlinkDir bool, symlinkDi
 			fPath = strings.Replace(p, dir, symlinkDir, 1)
 		}
 
-		fmt.Println("Processing:", fPath)
+		if ignoreRegexp != nil && ignoreRegexp.MatchString(fPath) {
+			continue
+		}
+
+		// fmt.Println("Processing:", fPath)
 
 		if file.IsDir() {
 
@@ -230,6 +267,10 @@ func processFilesRecursive(path string, dir string, isSymlinkDir bool, symlinkDi
 		for n, _ := bb.Read(chunk); n > 0; n, _ = bb.Read(chunk) {
 			b64File += string(chunk[0:n]) + "\n"
 		}
+
+		fPath = strings.TrimPrefix(fPath, *flagPrefix)
+
+		fmt.Println("Processing:", fPath)
 
 		// write out here
 		writer.WriteString(fmt.Sprintf(dirFileStart, fPath, file.Name(), info.Size(), info.Mode(), info.ModTime().Unix(), false, b64File))

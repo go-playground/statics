@@ -170,6 +170,12 @@ func TestGenerateFile(t *testing.T) {
 	g := "Assets"
 	flagGroup = &g
 
+	ignore := ""
+	flagIgnore = &ignore
+
+	prefix := ""
+	flagPrefix = &prefix
+
 	init := false
 	flagInit = &init
 

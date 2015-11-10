@@ -16,6 +16,10 @@ import (
 	"time"
 )
 
+var (
+	pathSep = string(os.PathSeparator)
+)
+
 // byName implements sort.Interface.
 type byName []os.FileInfo
 
@@ -126,8 +130,14 @@ func (f file) Readdir(count int) ([]os.FileInfo, error) {
 		count = len(f.files)
 	}
 
-	for i := f.lastDirIndex; i < count; i++ {
-		files = append(files, *f.files[i])
+	i := f.lastDirIndex
+
+	for i = f.lastDirIndex; i < count; i++ {
+		files[i] = *f.files[i]
+	}
+
+	if count > 0 {
+		f.lastDirIndex += f.lastDirIndex + i
 	}
 
 	return files, nil
@@ -292,7 +302,7 @@ func (f *Files) ReadFiles(dirname string, recursive bool) (map[string][]byte, er
 		return nil, err
 	}
 
-	if err = f.readFilesRecursive(dirname, file, results, recursive); err != nil {
+	if err = f.readFilesRecursive(dirname+pathSep, file, results, recursive); err != nil {
 		return nil, err
 	}
 
@@ -323,7 +333,7 @@ func (f *Files) readFilesRecursive(dirname string, file http.File, results map[s
 				continue
 			}
 
-			err := f.readFilesRecursive(fpath, newFile, results, recursive)
+			err := f.readFilesRecursive(fpath+pathSep, newFile, results, recursive)
 			if err != nil {
 				return err
 			}
