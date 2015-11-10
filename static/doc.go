@@ -13,7 +13,7 @@ Example Usages
 
 	// generated via command: statics -i=assets -o=assets.go -pkg=main -group=Assets -ignore=//.gitignore
 
-	pkg = // get absolute file path, used when UseStaticFiles=false
+	pkg = // get absolute directory path of the -i arguments parent directory, used when UseStaticFiles=false
 
 	config := &static.Config{
 		UseStaticFiles: true,
