@@ -299,6 +299,15 @@ func TestLocalNew(t *testing.T) {
 	Equal(t, err, nil)
 	NotEqual(t, staticFiles, nil)
 
+	go func(sf *Files) {
+
+		http.Handle("/static/test-files/", http.StripPrefix("/", http.FileServer(sf.FS())))
+		http.ListenAndServe("127.0.0.1:3007", nil)
+
+	}(staticFiles)
+
+	time.Sleep(1000)
+
 	f, err := staticFiles.GetHTTPFile("/static/test-files/teststart/plainfile.txt")
 	Equal(t, err, nil)
 
@@ -383,7 +392,7 @@ func TestLocalNew(t *testing.T) {
 
 	client := &http.Client{}
 
-	req, err := http.NewRequest("GET", "http://127.0.0.1:3006/static/test-files/teststart/plainfile.txt", nil)
+	req, err := http.NewRequest("GET", "http://127.0.0.1:3007/static/test-files/teststart/plainfile.txt", nil)
 	Equal(t, err, nil)
 
 	resp, err := client.Do(req)

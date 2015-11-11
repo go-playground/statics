@@ -41,8 +41,7 @@ type DirFile struct {
 
 // Files contains a full instance of a static file collection
 type Files struct {
-	absPkgPath string
-	dir        dir
+	dir dir
 }
 
 // File contains the static FileInfo
@@ -61,6 +60,7 @@ type file struct {
 // dir implements the FileSystem interface
 type dir struct {
 	useStaticFiles bool
+	absPkgPath     string
 	files          map[string]*file
 }
 
@@ -87,7 +87,13 @@ func (d dir) Open(name string) (http.File, error) {
 		return f.File()
 	}
 
-	return os.Open(filepath.FromSlash(name))
+	if !strings.HasPrefix(name, d.absPkgPath) {
+		name = filepath.FromSlash(d.absPkgPath + name)
+	} else {
+		name = filepath.FromSlash(name)
+	}
+
+	return os.Open(name)
 }
 
 // File returns an http.File or error
@@ -197,10 +203,10 @@ func New(config *Config, dirFile *DirFile) (*Files, error) {
 	}
 
 	return &Files{
-		absPkgPath: filepath.Clean(config.AbsPkgPath),
 		dir: dir{
 			useStaticFiles: config.UseStaticFiles,
 			files:          files,
+			absPkgPath:     filepath.Clean(config.AbsPkgPath),
 		},
 	}, nil
 }
@@ -254,7 +260,7 @@ func (f *Files) determinePath(name string) string {
 		return name
 	}
 
-	return f.absPkgPath + name
+	return f.dir.absPkgPath + name
 }
 
 // GetHTTPFile returns an http.File object
@@ -371,7 +377,7 @@ func (f *Files) readFilesRecursive(dirname string, file http.File, results map[s
 		}
 
 		if !f.dir.useStaticFiles {
-			fpath = strings.Replace(fpath, f.absPkgPath, "", 1)
+			fpath = strings.Replace(fpath, f.dir.absPkgPath, "", 1)
 		}
 
 		results[fpath], err = ioutil.ReadAll(newFile)
