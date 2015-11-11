@@ -13,6 +13,7 @@ import (
 	"path"
 	"path/filepath"
 	"sort"
+	"strings"
 	"time"
 )
 
@@ -91,22 +92,22 @@ func (d dir) Open(name string) (http.File, error) {
 }
 
 // File returns an http.File or error
-func (f file) File() (http.File, error) {
+func (f *file) File() (http.File, error) {
 
 	// if production read filesystem file
 	return &httpFile{
 		bytes.NewReader(f.data),
-		&f,
+		f,
 	}, nil
 }
 
 // Close closes the File, rendering it unusable for I/O. It returns an error, if any.
-func (f file) Close() error {
+func (f *file) Close() error {
 	return nil
 }
 
 // Readdir returns nil fileinfo and an error because the static FileSystem does not store directories
-func (f file) Readdir(count int) ([]os.FileInfo, error) {
+func (f *file) Readdir(count int) ([]os.FileInfo, error) {
 
 	if !f.IsDir() {
 		return nil, errors.New("not a directory")
@@ -120,6 +121,7 @@ func (f file) Readdir(count int) ([]os.FileInfo, error) {
 		f.lastDirIndex = 0
 	} else {
 		files = make([]os.FileInfo, count)
+		count += f.lastDirIndex
 	}
 
 	if f.lastDirIndex >= len(f.files) {
@@ -132,53 +134,52 @@ func (f file) Readdir(count int) ([]os.FileInfo, error) {
 
 	i := f.lastDirIndex
 
+	var j int
+
 	for i = f.lastDirIndex; i < count; i++ {
-		files[i] = *f.files[i]
+		files[j] = f.files[i]
+		j++
 	}
 
 	if count > 0 {
-		f.lastDirIndex += f.lastDirIndex + i
+		f.lastDirIndex += j
 	}
 
-	return files, nil
+	return files[:j], nil
 }
 
 // Stat returns the FileInfo structure describing file. If there is an error, it will be of type *PathError.
-func (f file) Stat() (os.FileInfo, error) {
+func (f *file) Stat() (os.FileInfo, error) {
 	return f, nil
 }
 
 // Name returns the name of the file as presented to Open.
-func (f file) Name() string {
+func (f *file) Name() string {
 	return f.name
 }
 
 // Size length in bytes for regular files; system-dependent for others
-func (f file) Size() int64 {
+func (f *file) Size() int64 {
 	return f.size
 }
 
 // Mode returns file mode bits
-func (f file) Mode() os.FileMode {
-	mode := os.FileMode(0644)
-	if f.IsDir() {
-		return mode | os.ModeDir
-	}
-	return mode
+func (f *file) Mode() os.FileMode {
+	return os.FileMode(f.mode)
 }
 
 // ModTime returns the files modification time
-func (f file) ModTime() time.Time {
+func (f *file) ModTime() time.Time {
 	return time.Unix(f.modTime, 0)
 }
 
 // IsDir reports whether f describes a directory.
-func (f file) IsDir() bool {
+func (f *file) IsDir() bool {
 	return f.isDir
 }
 
 // Sys returns the underlying data source (can return nil)
-func (f file) Sys() interface{} {
+func (f *file) Sys() interface{} {
 	return f
 }
 
@@ -196,7 +197,7 @@ func New(config *Config, dirFile *DirFile) (*Files, error) {
 	}
 
 	return &Files{
-		absPkgPath: config.AbsPkgPath,
+		absPkgPath: filepath.Clean(config.AbsPkgPath),
 		dir: dir{
 			useStaticFiles: config.UseStaticFiles,
 			files:          files,
@@ -252,7 +253,7 @@ func (f *Files) determinePath(name string) string {
 		return name
 	}
 
-	return f.absPkgPath + name
+	return f.absPkgPath + string(os.PathSeparator) + name
 }
 
 // GetHTTPFile returns an http.File object
@@ -341,6 +342,37 @@ func (f *Files) readFilesRecursive(dirname string, file http.File, results map[s
 			continue
 		}
 
+		if fi.Mode()&os.ModeSymlink == os.ModeSymlink {
+
+			link, err := filepath.EvalSymlinks(fpath)
+			if err != nil {
+				log.Panic("Error Resolving Symlink", err)
+			}
+
+			fi, err := os.Stat(link)
+			if err != nil {
+				log.Panic(err)
+			}
+
+			if fi.IsDir() {
+
+				if !recursive {
+					continue
+				}
+
+				err := f.readFilesRecursive(fpath+pathSep, newFile, results, recursive)
+				if err != nil {
+					return err
+				}
+
+				continue
+			}
+		}
+
+		if !f.dir.useStaticFiles {
+			fpath = strings.Replace(fpath, f.absPkgPath+string(os.PathSeparator), "", 1)
+		}
+
 		results[fpath], err = ioutil.ReadAll(newFile)
 		if err != nil {
 			return err
@@ -349,3 +381,55 @@ func (f *Files) readFilesRecursive(dirname string, file http.File, results map[s
 
 	return nil
 }
+
+// func (f *Files) readFilesRecursive(dirname string, file http.File, results map[string][]byte, recursive bool) error {
+
+// 	files, err := file.Readdir(-1)
+// 	fmt.Println("HERE 1")
+// 	if err != nil {
+
+// 		return err
+// 	}
+
+// 	fmt.Println("HERE 2 files:", len(files))
+
+// 	var fpath string
+
+// 	for _, fi := range files {
+
+// 		fpath = dirname + fi.Name()
+
+// 		fmt.Println("HERE 3 fpath:", fpath)
+
+// 		newFile, err := f.dir.Open(fpath)
+// 		if err != nil {
+// 			return err
+// 		}
+
+// 		fmt.Println("HERE 4")
+
+// 		if fi.IsDir() {
+
+// 			if !recursive {
+// 				continue
+// 			}
+
+// 			fmt.Println("HERE 5")
+// 			err := f.readFilesRecursive(fpath+pathSep, newFile, results, recursive)
+// 			if err != nil {
+// 				return err
+// 			}
+
+// 			fmt.Println("HERE 6")
+
+// 			continue
+// 		}
+
+// 		results[fpath], err = ioutil.ReadAll(newFile)
+// 		if err != nil {
+// 			return err
+// 		}
+// 	}
+
+// 	return nil
+// }
