@@ -2,6 +2,7 @@ package static
 
 import (
 	"io"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"testing"
@@ -280,6 +281,10 @@ func TestStaticNew(t *testing.T) {
 	Equal(t, err, nil)
 	Equal(t, resp.StatusCode, http.StatusOK)
 
+	bytes, err := ioutil.ReadAll(resp.Body)
+	Equal(t, err, nil)
+	Equal(t, string(bytes), "palindata\n")
+
 	defer resp.Body.Close()
 }
 
@@ -375,6 +380,21 @@ func TestLocalNew(t *testing.T) {
 
 	fis, err = staticFiles.ReadDir("nonexistantdir")
 	NotEqual(t, err, nil)
+
+	client := &http.Client{}
+
+	req, err := http.NewRequest("GET", "http://127.0.0.1:3006/static/test-files/teststart/plainfile.txt", nil)
+	Equal(t, err, nil)
+
+	resp, err := client.Do(req)
+	Equal(t, err, nil)
+	Equal(t, resp.StatusCode, http.StatusOK)
+
+	bytes, err := ioutil.ReadAll(resp.Body)
+	Equal(t, err, nil)
+	Equal(t, string(bytes), "palindata\n")
+
+	defer resp.Body.Close()
 }
 
 func TestBadLocalAbsPath(t *testing.T) {
