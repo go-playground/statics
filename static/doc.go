@@ -5,15 +5,24 @@ Embedding in Source Control
 
 	statics -i=assets -o=assets.go -pkg=main -group=Assets -ignore=//.gitignore -init=true
 
-	when using arg init=true statics package generates a minimal configuration with no files embeded;
-	you can then add it to source control, add the file to .gitignore and then when ready for generation
-	just run go generate from the project root and the files will get embedded ready for compilation.
+	when using arg init=true statics package generates a minimal configuration with no
+	files embeded; you can then add it to source control, add the file to .gitignore and
+	then when ready for generation just run go generate from the project root and the
+	files will get embedded ready for compilation.
 
 Example Usages
 
-	// generated via command: statics -i=assets -o=assets.go -pkg=main -group=Assets -ignore=//.gitignore
+	// generated via command:
+	// statics -i=assets -o=assets.go -pkg=main -group=Assets -ignore=//.gitignore
 
-	pkg = // get absolute directory path of the -i arguments parent directory, used when UseStaticFiles=false
+	gopath := getGopath() // retrieved from environment variable
+	pkgPath := "/src/github.com/username/project"
+
+	// get absolute directory path of the -i arguments parent directory, used when
+	// UseStaticFiles=false this is so even when referencing this package from another
+	// project and your PWD is not for this package anymore the file paths will still
+	// work.
+	pkg := goapth + pkgPath
 
 	config := &static.Config{
 		UseStaticFiles: true,
