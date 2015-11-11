@@ -91,7 +91,7 @@ func main() {
 
 	f, err := os.Create(*flagOuputFile)
 	if err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 	defer f.Close()
 
@@ -126,7 +126,7 @@ func main() {
 	// after file written run gofmt on file
 	cmd := exec.Command("gofmt", "-s", "-w", *flagOuputFile)
 	if err = cmd.Run(); err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 }
 
@@ -164,7 +164,7 @@ func processFiles(dir string) {
 
 	fi, err := os.Stat(dir)
 	if err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 
 	writer.WriteString(fmt.Sprintf(dirFileStart, dir, fi.Name(), fi.Size(), fi.Mode(), fi.ModTime().Unix(), true, ""))
@@ -180,7 +180,7 @@ func processFilesRecursive(path string, dir string, isSymlinkDir bool, symlinkDi
 
 	f, err := os.Open(path)
 	if err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 
 	files, err := f.Readdir(0)
@@ -200,8 +200,6 @@ func processFilesRecursive(path string, dir string, isSymlinkDir bool, symlinkDi
 			continue
 		}
 
-		// fmt.Println("Processing:", fPath)
-
 		if file.IsDir() {
 
 			// write out here
@@ -215,12 +213,12 @@ func processFilesRecursive(path string, dir string, isSymlinkDir bool, symlinkDi
 
 			link, err := filepath.EvalSymlinks(p)
 			if err != nil {
-				log.Fatal("Error Resolving Symlink", err)
+				log.Panic("Error Resolving Symlink", err)
 			}
 
 			fi, err := os.Stat(link)
 			if err != nil {
-				log.Fatal(err)
+				log.Panic(err)
 			}
 
 			info = fi
@@ -239,7 +237,7 @@ func processFilesRecursive(path string, dir string, isSymlinkDir bool, symlinkDi
 		// read file
 		b, err := ioutil.ReadFile(p)
 		if err != nil {
-			log.Fatal(err)
+			log.Panic(err)
 		}
 
 		// gzip
@@ -249,7 +247,7 @@ func processFilesRecursive(path string, dir string, isSymlinkDir bool, symlinkDi
 
 		_, err = gz.Write(b)
 		if err != nil {
-			log.Fatal(err)
+			log.Panic(err)
 		}
 
 		// Flush not quaranteed to flush, must close
