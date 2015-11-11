@@ -10,6 +10,11 @@ Embedding in Source Control
 	then when ready for generation just run go generate from the project root and the
 	files will get embedded ready for compilation.
 
+
+NOTE: when specifying paths or directory name in code always use "/", even for you windows users,
+      the package handles any conversion to you local filesystem paths; Except for the AbsPkgPath
+      variable in the config.
+
 Example Usages
 
 	// generated via command:

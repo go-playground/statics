@@ -32,6 +32,10 @@ Usage and documentation
 
 Please see https://godoc.org/github.com/joeybloggs/statics/static for detailed usage docs.
 
+NOTE: when specifying paths or directory name in code always use "/", even for you windows users,
+      the package handles any conversion to you local filesystem paths; Except for the AbsPkgPath
+      variable in the config.
+
 ##### Examples:
 
 Embedding in Source Control
