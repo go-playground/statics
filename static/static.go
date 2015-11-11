@@ -10,15 +10,14 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"path"
 	"path/filepath"
 	"sort"
 	"strings"
 	"time"
 )
 
-var (
-	pathSep = string(os.PathSeparator)
+const (
+	pathSep = "/"
 )
 
 // byName implements sort.Interface.
@@ -80,7 +79,7 @@ type Config struct {
 func (d dir) Open(name string) (http.File, error) {
 
 	if d.useStaticFiles {
-		f, found := d.files[path.Clean(name)]
+		f, found := d.files[name]
 		if !found {
 			return nil, os.ErrNotExist
 		}
@@ -88,7 +87,7 @@ func (d dir) Open(name string) (http.File, error) {
 		return f.File()
 	}
 
-	return os.Open(name)
+	return os.Open(filepath.FromSlash(name))
 }
 
 // File returns an http.File or error
@@ -125,6 +124,7 @@ func (f *file) Readdir(count int) ([]os.FileInfo, error) {
 	}
 
 	if f.lastDirIndex >= len(f.files) {
+		f.lastDirIndex = 0
 		return nil, io.EOF
 	}
 
@@ -217,7 +217,7 @@ func processFiles(files map[string]*file, dirFile *DirFile) *file {
 		files:   []*file{},
 	}
 
-	files[f.path] = f
+	files[filepath.ToSlash(f.path)] = f
 
 	if dirFile.IsDir {
 		for _, nestedFile := range dirFile.Files {
@@ -249,11 +249,12 @@ func (f *Files) FS() http.FileSystem {
 }
 
 func (f *Files) determinePath(name string) string {
+
 	if f.dir.useStaticFiles {
 		return name
 	}
 
-	return f.absPkgPath + string(os.PathSeparator) + name
+	return f.absPkgPath + name
 }
 
 // GetHTTPFile returns an http.File object
@@ -370,7 +371,7 @@ func (f *Files) readFilesRecursive(dirname string, file http.File, results map[s
 		}
 
 		if !f.dir.useStaticFiles {
-			fpath = strings.Replace(fpath, f.absPkgPath+string(os.PathSeparator), "", 1)
+			fpath = strings.Replace(fpath, f.absPkgPath, "", 1)
 		}
 
 		results[fpath], err = ioutil.ReadAll(newFile)
@@ -381,55 +382,3 @@ func (f *Files) readFilesRecursive(dirname string, file http.File, results map[s
 
 	return nil
 }
-
-// func (f *Files) readFilesRecursive(dirname string, file http.File, results map[string][]byte, recursive bool) error {
-
-// 	files, err := file.Readdir(-1)
-// 	fmt.Println("HERE 1")
-// 	if err != nil {
-
-// 		return err
-// 	}
-
-// 	fmt.Println("HERE 2 files:", len(files))
-
-// 	var fpath string
-
-// 	for _, fi := range files {
-
-// 		fpath = dirname + fi.Name()
-
-// 		fmt.Println("HERE 3 fpath:", fpath)
-
-// 		newFile, err := f.dir.Open(fpath)
-// 		if err != nil {
-// 			return err
-// 		}
-
-// 		fmt.Println("HERE 4")
-
-// 		if fi.IsDir() {
-
-// 			if !recursive {
-// 				continue
-// 			}
-
-// 			fmt.Println("HERE 5")
-// 			err := f.readFilesRecursive(fpath+pathSep, newFile, results, recursive)
-// 			if err != nil {
-// 				return err
-// 			}
-
-// 			fmt.Println("HERE 6")
-
-// 			continue
-// 		}
-
-// 		results[fpath], err = ioutil.ReadAll(newFile)
-// 		if err != nil {
-// 			return err
-// 		}
-// 	}
-
-// 	return nil
-// }

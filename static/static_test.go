@@ -2,6 +2,7 @@ package static
 
 import (
 	"io"
+	"net/http"
 	"os"
 	"testing"
 	"time"
@@ -36,7 +37,7 @@ func TestMain(m *testing.M) {
 
 	// setup
 	testDirFile = &DirFile{
-		Path:    "static/test-files/teststart",
+		Path:    "/static/test-files/teststart",
 		Name:    "teststart",
 		Size:    170,
 		Mode:    os.FileMode(2147484141),
@@ -45,7 +46,7 @@ func TestMain(m *testing.M) {
 		Compressed: `
 `,
 		Files: []*DirFile{{
-			Path:    "static/test-files/teststart/symlinkeddir",
+			Path:    "/static/test-files/teststart/symlinkeddir",
 			Name:    "symlinkeddir",
 			Size:    136,
 			Mode:    os.FileMode(2147484141),
@@ -54,7 +55,7 @@ func TestMain(m *testing.M) {
 			Compressed: `
 `,
 			Files: []*DirFile{{
-				Path:    "static/test-files/teststart/symlinkeddir/realdir",
+				Path:    "/static/test-files/teststart/symlinkeddir/realdir",
 				Name:    "realdir",
 				Size:    136,
 				Mode:    os.FileMode(2147484141),
@@ -63,7 +64,7 @@ func TestMain(m *testing.M) {
 				Compressed: `
 `,
 				Files: []*DirFile{{
-					Path:    "static/test-files/teststart/symlinkeddir/realdir/doublesymlinkeddir",
+					Path:    "/static/test-files/teststart/symlinkeddir/realdir/doublesymlinkeddir",
 					Name:    "doublesymlinkeddir",
 					Size:    136,
 					Mode:    os.FileMode(2147484141),
@@ -72,7 +73,7 @@ func TestMain(m *testing.M) {
 					Compressed: `
 `,
 					Files: []*DirFile{{
-						Path:    "static/test-files/teststart/symlinkeddir/realdir/doublesymlinkeddir/doublesymlinkedfile.txt",
+						Path:    "/static/test-files/teststart/symlinkeddir/realdir/doublesymlinkeddir/doublesymlinkedfile.txt",
 						Name:    "doublesymlinkedfile.txt",
 						Size:    5,
 						Mode:    os.FileMode(420),
@@ -84,7 +85,7 @@ H4sIAAAJbogA/0pJLEnkAgQAAP//gsXB5gUAAAA=
 						Files: []*DirFile{},
 					},
 						{
-							Path:    "static/test-files/teststart/symlinkeddir/realdir/doublesymlinkeddir/triplesymlinkeddir",
+							Path:    "/static/test-files/teststart/symlinkeddir/realdir/doublesymlinkeddir/triplesymlinkeddir",
 							Name:    "triplesymlinkeddir",
 							Size:    102,
 							Mode:    os.FileMode(2147484141),
@@ -93,7 +94,7 @@ H4sIAAAJbogA/0pJLEnkAgQAAP//gsXB5gUAAAA=
 							Compressed: `
 `,
 							Files: []*DirFile{{
-								Path:    "static/test-files/teststart/symlinkeddir/realdir/doublesymlinkeddir/triplesymlinkeddir/triplefile.txt",
+								Path:    "/static/test-files/teststart/symlinkeddir/realdir/doublesymlinkeddir/triplesymlinkeddir/triplefile.txt",
 								Name:    "triplefile.txt",
 								Size:    5,
 								Mode:    os.FileMode(420),
@@ -109,7 +110,7 @@ H4sIAAAJbogA/0pJLEnkAgQAAP//gsXB5gUAAAA=
 					},
 				},
 					{
-						Path:    "static/test-files/teststart/symlinkeddir/realdir/realdirfile.txt",
+						Path:    "/static/test-files/teststart/symlinkeddir/realdir/realdirfile.txt",
 						Name:    "realdirfile.txt",
 						Size:    5,
 						Mode:    os.FileMode(420),
@@ -123,7 +124,7 @@ H4sIAAAJbogA/0pJLEnkAgQAAP//gsXB5gUAAAA=
 				},
 			},
 				{
-					Path:    "static/test-files/teststart/symlinkeddir/symlinkeddirfile.txt",
+					Path:    "/static/test-files/teststart/symlinkeddir/symlinkeddirfile.txt",
 					Name:    "symlinkeddirfile.txt",
 					Size:    5,
 					Mode:    os.FileMode(420),
@@ -137,7 +138,7 @@ H4sIAAAJbogA/0pJLEnkAgQAAP//gsXB5gUAAAA=
 			},
 		},
 			{
-				Path:    "static/test-files/teststart/plainfile.txt",
+				Path:    "/static/test-files/teststart/plainfile.txt",
 				Name:    "plainfile.txt",
 				Size:    10,
 				Mode:    os.FileMode(420),
@@ -149,7 +150,7 @@ H4sIAAAJbogA/ypIzMnMS0ksSeQCBAAA//9+mKzVCgAAAA==
 				Files: []*DirFile{},
 			},
 			{
-				Path:    "static/test-files/teststart/symlinkedfile.txt",
+				Path:    "/static/test-files/teststart/symlinkedfile.txt",
 				Name:    "symlinkedfile.txt",
 				Size:    5,
 				Mode:    os.FileMode(420),
@@ -179,7 +180,16 @@ func TestStaticNew(t *testing.T) {
 	Equal(t, err, nil)
 	NotEqual(t, staticFiles, nil)
 
-	f, err := staticFiles.GetHTTPFile("static/test-files/teststart/plainfile.txt")
+	go func(sf *Files) {
+
+		http.Handle("/static/", http.StripPrefix("/", http.FileServer(sf.FS())))
+		http.ListenAndServe("127.0.0.1:3006", nil)
+
+	}(staticFiles)
+
+	time.Sleep(1000)
+
+	f, err := staticFiles.GetHTTPFile("/static/test-files/teststart/plainfile.txt")
 	Equal(t, err, nil)
 
 	fis, err := f.Readdir(-1)
@@ -198,7 +208,7 @@ func TestStaticNew(t *testing.T) {
 	err = f.Close()
 	Equal(t, err, nil)
 
-	f, err = staticFiles.GetHTTPFile("static/test-files/teststart")
+	f, err = staticFiles.GetHTTPFile("/static/test-files/teststart")
 	Equal(t, err, nil)
 
 	fi, err = f.Stat()
@@ -231,27 +241,27 @@ func TestStaticNew(t *testing.T) {
 	err = f.Close()
 	Equal(t, err, nil)
 
-	b, err := staticFiles.ReadFile("static/test-files/teststart/plainfile.txt")
+	b, err := staticFiles.ReadFile("/static/test-files/teststart/plainfile.txt")
 	Equal(t, err, nil)
 	Equal(t, string(b), "palindata\n")
 
 	b, err = staticFiles.ReadFile("nonexistantfile")
 	NotEqual(t, err, nil)
 
-	bs, err := staticFiles.ReadFiles("static/test-files/teststart", false)
+	bs, err := staticFiles.ReadFiles("/static/test-files/teststart", false)
 	Equal(t, err, nil)
 	Equal(t, len(bs), 2)
-	Equal(t, string(bs["static/test-files/teststart/plainfile.txt"]), "palindata\n")
-	Equal(t, string(bs["static/test-files/teststart/symlinkedfile.txt"]), "data\n")
+	Equal(t, string(bs["/static/test-files/teststart/plainfile.txt"]), "palindata\n")
+	Equal(t, string(bs["/static/test-files/teststart/symlinkedfile.txt"]), "data\n")
 
-	bs, err = staticFiles.ReadFiles("static/test-files/teststart", true)
+	bs, err = staticFiles.ReadFiles("/static/test-files/teststart", true)
 	Equal(t, err, nil)
 	Equal(t, len(bs), 6)
 
 	bs, err = staticFiles.ReadFiles("nonexistantdir", false)
 	NotEqual(t, err, nil)
 
-	fis, err = staticFiles.ReadDir("static/test-files/teststart")
+	fis, err = staticFiles.ReadDir("/static/test-files/teststart")
 	Equal(t, err, nil)
 	Equal(t, len(fis), 3)
 	Equal(t, fis[0].Name(), "plainfile.txt")
@@ -260,6 +270,17 @@ func TestStaticNew(t *testing.T) {
 
 	fis, err = staticFiles.ReadDir("nonexistantdir")
 	NotEqual(t, err, nil)
+
+	client := &http.Client{}
+
+	req, err := http.NewRequest("GET", "http://127.0.0.1:3006/static/test-files/teststart/plainfile.txt", nil)
+	Equal(t, err, nil)
+
+	resp, err := client.Do(req)
+	Equal(t, err, nil)
+	Equal(t, resp.StatusCode, http.StatusOK)
+
+	defer resp.Body.Close()
 }
 
 func TestLocalNew(t *testing.T) {
@@ -273,7 +294,7 @@ func TestLocalNew(t *testing.T) {
 	Equal(t, err, nil)
 	NotEqual(t, staticFiles, nil)
 
-	f, err := staticFiles.GetHTTPFile("static/test-files/teststart/plainfile.txt")
+	f, err := staticFiles.GetHTTPFile("/static/test-files/teststart/plainfile.txt")
 	Equal(t, err, nil)
 
 	fis, err := f.Readdir(-1)
@@ -292,7 +313,7 @@ func TestLocalNew(t *testing.T) {
 	err = f.Close()
 	Equal(t, err, nil)
 
-	f, err = staticFiles.GetHTTPFile("static/test-files/teststart")
+	f, err = staticFiles.GetHTTPFile("/static/test-files/teststart")
 	Equal(t, err, nil)
 
 	fi, err = f.Stat()
@@ -325,27 +346,27 @@ func TestLocalNew(t *testing.T) {
 	err = f.Close()
 	Equal(t, err, nil)
 
-	b, err := staticFiles.ReadFile("static/test-files/teststart/plainfile.txt")
+	b, err := staticFiles.ReadFile("/static/test-files/teststart/plainfile.txt")
 	Equal(t, err, nil)
 	Equal(t, string(b), "palindata\n")
 
 	b, err = staticFiles.ReadFile("nonexistantfile")
 	NotEqual(t, err, nil)
 
-	bs, err := staticFiles.ReadFiles("static/test-files/teststart", false)
+	bs, err := staticFiles.ReadFiles("/static/test-files/teststart", false)
 	Equal(t, err, nil)
 	Equal(t, len(bs), 2)
-	Equal(t, string(bs["static/test-files/teststart/plainfile.txt"]), "palindata\n")
-	Equal(t, string(bs["static/test-files/teststart/symlinkedfile.txt"]), "data\n")
+	Equal(t, string(bs["/static/test-files/teststart/plainfile.txt"]), "palindata\n")
+	Equal(t, string(bs["/static/test-files/teststart/symlinkedfile.txt"]), "data\n")
 
-	bs, err = staticFiles.ReadFiles("static/test-files/teststart", true)
+	bs, err = staticFiles.ReadFiles("/static/test-files/teststart", true)
 	Equal(t, err, nil)
 	Equal(t, len(bs), 6)
 
 	bs, err = staticFiles.ReadFiles("nonexistantdir", false)
 	NotEqual(t, err, nil)
 
-	fis, err = staticFiles.ReadDir("static/test-files/teststart")
+	fis, err = staticFiles.ReadDir("/static/test-files/teststart")
 	Equal(t, err, nil)
 	Equal(t, len(fis), 3)
 	Equal(t, fis[0].Name(), "plainfile.txt")

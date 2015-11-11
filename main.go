@@ -167,7 +167,9 @@ func processFiles(dir string) {
 		log.Panic(err)
 	}
 
-	writer.WriteString(fmt.Sprintf(dirFileStart, dir, fi.Name(), fi.Size(), fi.Mode(), fi.ModTime().Unix(), true, ""))
+	dPath := applyPathOptions(dir)
+
+	writer.WriteString(fmt.Sprintf(dirFileStart, dPath, fi.Name(), fi.Size(), fi.Mode(), fi.ModTime().Unix(), true, ""))
 	processFilesRecursive(dir, "", false, "")
 	writer.WriteString(dirFileEnd)
 }
@@ -177,6 +179,7 @@ func processFilesRecursive(path string, dir string, isSymlinkDir bool, symlinkDi
 
 	var b64File string
 	var p string
+	var tmpPath string
 
 	f, err := os.Open(path)
 	if err != nil {
@@ -202,8 +205,10 @@ func processFilesRecursive(path string, dir string, isSymlinkDir bool, symlinkDi
 
 		if file.IsDir() {
 
+			tmpPath = applyPathOptions(fPath)
+
 			// write out here
-			writer.WriteString(fmt.Sprintf(dirFileStart, fPath, info.Name(), info.Size(), info.Mode(), info.ModTime().Unix(), true, ""))
+			writer.WriteString(fmt.Sprintf(dirFileStart, tmpPath, info.Name(), info.Size(), info.Mode(), info.ModTime().Unix(), true, ""))
 			processFilesRecursive(p, p, isSymlinkDir, symlinkDir+string(os.PathSeparator)+info.Name())
 			writer.WriteString(dirFileEndArray)
 			continue
@@ -224,8 +229,11 @@ func processFilesRecursive(path string, dir string, isSymlinkDir bool, symlinkDi
 			info = fi
 
 			if fi.IsDir() {
+
+				tmpPath = applyPathOptions(fPath)
+
 				// write out here
-				writer.WriteString(fmt.Sprintf(dirFileStart, fPath, file.Name(), info.Size(), info.Mode(), info.ModTime().Unix(), true, ""))
+				writer.WriteString(fmt.Sprintf(dirFileStart, tmpPath, file.Name(), info.Size(), info.Mode(), info.ModTime().Unix(), true, ""))
 				processFilesRecursive(link, link, true, fPath)
 				writer.WriteString(dirFileEndArray)
 				continue
@@ -266,7 +274,7 @@ func processFilesRecursive(path string, dir string, isSymlinkDir bool, symlinkDi
 			b64File += string(chunk[0:n]) + "\n"
 		}
 
-		fPath = strings.TrimPrefix(fPath, *flagPrefix)
+		fPath = applyPathOptions(fPath)
 
 		fmt.Println("Processing:", fPath)
 
@@ -274,4 +282,10 @@ func processFilesRecursive(path string, dir string, isSymlinkDir bool, symlinkDi
 		writer.WriteString(fmt.Sprintf(dirFileStart, fPath, file.Name(), info.Size(), info.Mode(), info.ModTime().Unix(), false, b64File))
 		writer.WriteString(dirFileEndArray)
 	}
+}
+
+func applyPathOptions(path string) string {
+	path = strings.TrimPrefix(path, *flagPrefix)
+	path = strings.TrimLeft(path, string(os.PathSeparator))
+	return string(os.PathSeparator) + path
 }
