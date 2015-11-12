@@ -188,7 +188,7 @@ func TestStaticNew(t *testing.T) {
 
 	}(staticFiles)
 
-	time.Sleep(1000)
+	time.Sleep(5000)
 
 	f, err := staticFiles.GetHTTPFile("/static/test-files/teststart/plainfile.txt")
 	Equal(t, err, nil)
@@ -306,7 +306,7 @@ func TestLocalNew(t *testing.T) {
 
 	}(staticFiles)
 
-	time.Sleep(1000)
+	time.Sleep(5000)
 
 	f, err := staticFiles.GetHTTPFile("/static/test-files/teststart/plainfile.txt")
 	Equal(t, err, nil)
