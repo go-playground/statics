@@ -318,7 +318,7 @@ func TestLocalNew(t *testing.T) {
 	fi, err := f.Stat()
 	Equal(t, err, nil)
 	Equal(t, fi.Name(), "plainfile.txt")
-	Equal(t, fi.Size(), int64(10))
+	// Equal(t, fi.Size(), int64(10))  // commented out as size can differ on different file systems when cloned
 	Equal(t, fi.IsDir(), false)
 	// Equal(t, fi.Mode(), os.FileMode(420)) // commented out as permissions can be different based on when & where you cloned
 	// Equal(t, fi.ModTime(), time.Unix(1446650128, 0)) // commented out as file mod times will be different based on when you cloned
@@ -333,7 +333,7 @@ func TestLocalNew(t *testing.T) {
 	fi, err = f.Stat()
 	Equal(t, err, nil)
 	Equal(t, fi.Name(), "teststart")
-	Equal(t, fi.Size(), int64(170))
+	// Equal(t, fi.Size(), int64(170)) // commented out as size can differ on different file systems when cloned
 	Equal(t, fi.IsDir(), true)
 	// Equal(t, fi.Mode(), os.FileMode(2147484141))  // commented out as permissions can be different based on when & where you cloned
 	// Equal(t, fi.ModTime(), time.Unix(1446650128, 0))  // commented out as file mod times will be different based on when you cloned
