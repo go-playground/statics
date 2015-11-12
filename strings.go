@@ -6,7 +6,7 @@ const (
 
 	package %s
 
-import "github.com/joeybloggs/statics/static"
+import "gopkg.in/go-playground/statics.v1/static"
 
 // newStatic%s initializes a new *static.Files instance for use
 func newStatic%s(config *static.Config) (*static.Files, error) {
@@ -22,7 +22,7 @@ func newStatic%s(config *static.Config) (*static.Files, error) {
 import (
 	"os"
 
-	"github.com/joeybloggs/statics/static"
+	"gopkg.in/go-playground/statics.v1/static"
 )
 
 // newStatic%s initializes a new *static.Files instance for use
