@@ -1,7 +1,7 @@
 Package statics
 ===============
 
-[![Build Status](https://semaphoreci.com/api/v1/projects/1b97afa9-77f3-43ff-ad26-749958500745/601266/badge.svg)](https://semaphoreci.com/joeybloggs/statics)
+[![Build Status](https://semaphoreci.com/api/v1/projects/1b97afa9-77f3-43ff-ad26-749958500745/601363/badge.svg)](https://semaphoreci.com/joeybloggs/statics)
 [![GoDoc](https://godoc.org/github.com/go-playground/statics/static?status.svg)](https://godoc.org/github.com/go-playground/statics/static)
 
 Package statics embeds static files into your go applications. It provides helper methods and objects to retrieve embeded files and serve via http.
