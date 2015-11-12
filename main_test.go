@@ -140,7 +140,7 @@ func TestGenerateInitFile(t *testing.T) {
 
 package test
 
-import "gopkg.in/go-playground/statics.v1/static"
+import "github.com/go-playground/statics/static"
 
 // newStaticAssets initializes a new *static.Files instance for use
 func newStaticAssets(config *static.Config) (*static.Files, error) {

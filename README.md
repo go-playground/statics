@@ -1,7 +1,7 @@
 Package statics
 ===============
 
-[![GoDoc](https://godoc.org/gopkg.in/go-playground/statics.v1/static?status.svg)](https://godoc.org/gopkg.in/go-playground/statics.v1/static)
+[![GoDoc](https://godoc.org/github.com/go-playground/statics/static?status.svg)](https://godoc.org/github.com/go-playground/statics/static)
 
 Package statics embeds static files into your go applications. It provides helper methods and objects to retrieve embeded files and serve via http.
 
@@ -16,20 +16,20 @@ Installation
 ------------
 Use go get.
 
-	go get gopkg.in/go-playground/statics.v1
+	go get github.com/go-playground/statics
 
 or to update
 
-	go get -u gopkg.in/go-playground/statics.v1
+	go get -u github.com/go-playground/statics
 
 Then import the validator package into your own code.
 
-	import "gopkg.in/go-playground/statics.v1"
+	import "github.com/go-playground/statics"
 
 Usage and documentation
 ------
 
-Please see https://godoc.org/gopkg.in/go-playground/statics.v1/static for detailed usage docs.
+Please see https://godoc.org/github.com/go-playground/statics/static for detailed usage docs.
 
 NOTE: when specifying path or directory name in code always use "/", even for you windows users,
      the package handles any conversion to you local filesystem paths; Except for the AbsPkgPath
