@@ -313,7 +313,7 @@ func TestLocalNew(t *testing.T) {
 
 	fis, err := f.Readdir(-1)
 	NotEqual(t, err, nil)
-	Equal(t, err.Error(), "readdirent: invalid argument")
+	// Equal(t, err.Error(), "readdirent: invalid argument") // this is "not a directory" in linux but readdirent: invalid argument in osx
 
 	fi, err := f.Stat()
 	Equal(t, err, nil)
@@ -321,7 +321,7 @@ func TestLocalNew(t *testing.T) {
 	Equal(t, fi.Size(), int64(10))
 	Equal(t, fi.IsDir(), false)
 	Equal(t, fi.Mode(), os.FileMode(420))
-	Equal(t, fi.ModTime(), time.Unix(1446650128, 0))
+	// Equal(t, fi.ModTime(), time.Unix(1446650128, 0)) // commented out as file mod times will be different based on when you cloned
 	NotEqual(t, fi.Sys(), nil)
 
 	err = f.Close()
@@ -336,7 +336,7 @@ func TestLocalNew(t *testing.T) {
 	Equal(t, fi.Size(), int64(170))
 	Equal(t, fi.IsDir(), true)
 	Equal(t, fi.Mode(), os.FileMode(2147484141))
-	Equal(t, fi.ModTime(), time.Unix(1446650128, 0))
+	// Equal(t, fi.ModTime(), time.Unix(1446650128, 0))  // commented out as file mod times will be different based on when you cloned
 	NotEqual(t, fi.Sys(), nil)
 
 	var j int
