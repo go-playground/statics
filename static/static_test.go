@@ -174,7 +174,7 @@ func TestStaticNew(t *testing.T) {
 
 	config := &Config{
 		UseStaticFiles: true,
-		AbsPkgPath:     getGOPATH() + "/src/github.com/joeybloggs/statics",
+		AbsPkgPath:     getGOPATH() + "/src/github.com/go-playground/statics",
 	}
 
 	staticFiles, err := New(config, testDirFile)
@@ -292,7 +292,7 @@ func TestLocalNew(t *testing.T) {
 
 	config := &Config{
 		UseStaticFiles: false,
-		AbsPkgPath:     getGOPATH() + "/src/github.com/joeybloggs/statics",
+		AbsPkgPath:     getGOPATH() + "/src/github.com/go-playground/statics",
 	}
 
 	staticFiles, err := New(config, testDirFile)
@@ -410,7 +410,7 @@ func TestBadLocalAbsPath(t *testing.T) {
 
 	config := &Config{
 		UseStaticFiles: false,
-		AbsPkgPath:     "../github.com/joeybloggs/statics",
+		AbsPkgPath:     "../github.com/go-playground/statics",
 	}
 
 	staticFiles, err := New(config, testDirFile)
