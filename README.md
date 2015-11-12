@@ -35,6 +35,8 @@ NOTE: when specifying path or directory name in code always use "/", even for yo
      the package handles any conversion to you local filesystem paths; Except for the AbsPkgPath
      variable in the config.
 
+run statics -h to see the options/arguments
+
 ##### Examples:
 
 Embedding in Source Control
@@ -54,10 +56,10 @@ Example Usage
 	gopath := getGopath() // retrieved from environment variable
 	pkgPath := "/src/github.com/username/project"
 
-	// get absolute directory path of the -i arguments parent directory, used when 
-	// UseStaticFiles=false this is so even when referencing this package from another
-	// project and your PWD is not for this package anymore the file paths will still
-	// work.
+	// get absolute directory path of the -i arguments parent directory + any prefix 
+	// removed, used when UseStaticFiles=false this is so even when referencing this 
+	// package from another project and your PWD is not for this package anymore the 
+	// file paths will still work.
 	pkg := goapth + pkgPath
 
 	config := &static.Config{
@@ -65,6 +67,7 @@ Example Usage
 		AbsPkgPath:     pkg,
 	}
 
+	// NOTE: Assets in the function name below is the group in the generation command
 	assets, err := newStaticAssets(config)
 	if err != nil {
 		log.Println(err)
