@@ -46,9 +46,10 @@ Embedding in Source Control
 	statics -i=assets -o=assets.go -pkg=main -group=Assets -ignore=//.gitignore -init=true
 
 	when using arg init=true statics package generates a minimal configuration with no 
-	files embeded; you can then add it to source control, add the file to .gitignore and 
-	then when ready for generation just run go generate from the project root and the 
-	files will get embedded ready for compilation.
+	files embeded; you can then add it to source control, ignore the file locally using
+	git update-index --assume-unchanged [filename(s)] and then when ready for generation 
+	just run go generate from the project root and the files will get embedded ready for 
+	compilation.
 
 Example Usage
 ```go
