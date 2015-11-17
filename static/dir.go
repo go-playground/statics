@@ -10,6 +10,7 @@ import (
 // dir implements the FileSystem interface
 type dir struct {
 	useStaticFiles bool
+	fallbackToDisk bool
 	absPkgPath     string
 	files          map[string]*file
 }
@@ -19,11 +20,14 @@ func (d dir) Open(name string) (http.File, error) {
 
 	if d.useStaticFiles {
 		f, found := d.files[name]
-		if !found {
-			return nil, os.ErrNotExist
+
+		if found {
+			return f.File()
 		}
 
-		return f.File()
+		if !d.fallbackToDisk {
+			return nil, os.ErrNotExist
+		}
 	}
 
 	if !strings.HasPrefix(name, d.absPkgPath) {

@@ -36,8 +36,12 @@ type Files struct {
 }
 
 // Config contains information about how extracting the data should behave
+// NOTE: FallbackToDisk falls back to disk when file not found in static assets
+// usefull when you have a mixture of static assets and some that need to remain
+// on disk i.e. a users avatar image
 type Config struct {
 	UseStaticFiles bool
+	FallbackToDisk bool   // falls back to disk when file not found in static assets
 	AbsPkgPath     string // the Absolute package path used for local file reading when UseStaticFiles is false
 }
 
@@ -57,6 +61,7 @@ func New(config *Config, dirFile *DirFile) (*Files, error) {
 	return &Files{
 		dir: dir{
 			useStaticFiles: config.UseStaticFiles,
+			fallbackToDisk: config.FallbackToDisk,
 			files:          files,
 			absPkgPath:     filepath.Clean(config.AbsPkgPath),
 		},
