@@ -51,7 +51,7 @@ Embedding in Source Control
 	just run go generate from the project root and the files will get embedded ready for 
 	compilation.
 
-	Be sure to check out this packages best buddy [https://github.com/go-playground/generate](https://github.com/go-playground/generate)
+	Be sure to check out this packages best buddy https://github.com/go-playground/generate
 	to help get everything generated and ready for compilation.
 
 Example Usage
