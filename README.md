@@ -43,50 +43,50 @@ run statics -h to see the options/arguments
 
 Embedding in Source Control
 
-	statics -i=assets -o=assets.go -pkg=main -group=Assets -ignore=//.gitignore -init=true
+statics -i=assets -o=assets.go -pkg=main -group=Assets -ignore=//.gitignore -init=true
 
-	when using arg init=true statics package generates a minimal configuration with no 
-	files embeded; you can then add it to source control, ignore the file locally using
-	git update-index --assume-unchanged [filename(s)] and then when ready for generation 
-	just run go generate from the project root and the files will get embedded ready for 
-	compilation.
+when using arg init=true statics package generates a minimal configuration with no 
+files embeded; you can then add it to source control, ignore the file locally using
+git update-index --assume-unchanged [filename(s)] and then when ready for generation 
+just run go generate from the project root and the files will get embedded ready for 
+compilation.
 
-	Be sure to check out this packages best buddy https://github.com/go-playground/generate
-	to help get everything generated and ready for compilation.
+Be sure to check out this packages best buddy https://github.com/go-playground/generate
+to help get everything generated and ready for compilation.
 
 Example Usage
 ```go
-	// generated via command: 
-	// statics -i=assets -o=assets.go -pkg=main -group=Assets -ignore=//.gitignore
+// generated via command: 
+// statics -i=assets -o=assets.go -pkg=main -group=Assets -ignore=//.gitignore
 
-	gopath := getGopath() // retrieved from environment variable
-	pkgPath := "/src/github.com/username/project"
+gopath := getGopath() // retrieved from environment variable
+pkgPath := "/src/github.com/username/project"
 
-	// get absolute directory path of the -i arguments parent directory + any prefix 
-	// removed, used when UseStaticFiles=false this is so even when referencing this 
-	// package from another project and your PWD is not for this package anymore the 
-	// file paths will still work.
-	pkg := goapth + pkgPath
+// get absolute directory path of the -i arguments parent directory + any prefix 
+// removed, used when UseStaticFiles=false this is so even when referencing this 
+// package from another project and your PWD is not for this package anymore the 
+// file paths will still work.
+pkg := goapth + pkgPath
 
-	config := &static.Config{
-		UseStaticFiles: true,
-		AbsPkgPath:     pkg,
-	}
+config := &static.Config{
+	UseStaticFiles: true,
+	AbsPkgPath:     pkg,
+}
 
-	// NOTE: Assets in the function name below is the group in the generation command
-	assets, err := newStaticAssets(config)
-	if err != nil {
-		log.Println(err)
-	}
+// NOTE: Assets in the function name below is the group in the generation command
+assets, err := newStaticAssets(config)
+if err != nil {
+	log.Println(err)
+}
 
-	// when using http
-	http.Handle("/assets", http.FileServer(assets.FS()))
+// when using http
+http.Handle("/assets", http.FileServer(assets.FS()))
 
-	// other methods for direct access
-	assets.GetHTTPFile
-	assets.ReadFile
-	assets.ReadDir
-	assets.ReadFiles
+// other methods for direct access
+assets.GetHTTPFile
+assets.ReadFile
+assets.ReadDir
+assets.ReadFiles
 ```
 
 License
