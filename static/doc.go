@@ -5,6 +5,20 @@ Embedding in Source Control
 
 	statics -i=assets -o=assets.go -pkg=main -group=Assets -ignore=//.gitignore -init=true
 
+	Output:
+
+	//go:generate statics -i=assets -o=assets.go -pkg=main -group=Assets -ignore=\.gitignore
+
+	package main
+
+	import "github.com/go-playground/statics/static"
+
+	// newStaticAssets initializes a new *static.Files instance for use
+	func newStaticAssets(config *static.Config) (*static.Files, error) {
+
+		return static.New(config, &static.DirFile{})
+	}
+
 	when using arg init=true statics package generates a minimal configuration with no
 	files embeded; you can then add it to source control, ignore the file locally using
 	git update-index --assume-unchanged [filename(s)] and then when ready for generation
@@ -24,7 +38,7 @@ run statics -h to see the options/arguments
 Example Usages
 
 	// generated via command:
-	// statics -i=assets -o=assets.go -pkg=main -group=Assets -ignore=//.gitignore
+	// statics -i=assets -o=assets.go -pkg=main -group=Assets -ignore=\\.gitignore
 
 	gopath := getGopath() // retrieved from environment variable
 	pkgPath := "/src/github.com/username/project"
