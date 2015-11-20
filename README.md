@@ -43,7 +43,7 @@ run statics -h to see the options/arguments
 
 Embedding in Source Control
 
-statics -i=assets -o=assets.go -pkg=main -group=Assets -ignore=\\.gitignore -init=true
+statics -i=assets -o=assets.go -pkg=main -group=Assets -ignore=\\\\.gitignore -init=true
 
 Output:
 ```go

@@ -3,7 +3,7 @@ Package static reads package statics generated go files and provides helper meth
 
 Embedding in Source Control
 
-	statics -i=assets -o=assets.go -pkg=main -group=Assets -ignore=//.gitignore -init=true
+	statics -i=assets -o=assets.go -pkg=main -group=Assets -ignore=\\.gitignore -init=true
 
 	Output:
 
