@@ -104,6 +104,15 @@ assets.ReadDir
 assets.ReadFiles
 ```
 
+Package Versioning
+----------
+I'm jumping on the vendoring bandwagon, you should vendor this package as I will not
+be creating different version with gopkg.in like allot of my other libraries.
+
+Why? because my time is spread pretty thin maintaining all of the libraries I have + LIFE,
+it is so freeing not to worry about it and will help me keep pouring out bigger and better
+things for you the community.
+
 License
 ------
 Distributed under MIT License, please see license file in code for more details.
