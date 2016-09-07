@@ -62,7 +62,7 @@ func New(config *Config, dirFile *DirFile) (*Files, error) {
 				return nil, errors.New("$GOPATH could not be found; you're setup is not correct")
 			}
 
-			config.AbsPkgPath = gopath + config.AbsPkgPath[:7]
+			config.AbsPkgPath = gopath + config.AbsPkgPath[7:]
 		}
 
 		if !filepath.IsAbs(config.AbsPkgPath) {
