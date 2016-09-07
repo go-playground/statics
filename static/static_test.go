@@ -174,7 +174,7 @@ func TestStaticNew(t *testing.T) {
 
 	config := &Config{
 		UseStaticFiles: true,
-		AbsPkgPath:     getGOPATH() + "/src/github.com/go-playground/statics",
+		AbsPkgPath:     "$GOPATH/src/github.com/go-playground/statics",
 	}
 
 	staticFiles, err := New(config, testDirFile)

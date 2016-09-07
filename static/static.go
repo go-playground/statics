@@ -53,6 +53,18 @@ func New(config *Config, dirFile *DirFile) (*Files, error) {
 	if config.UseStaticFiles {
 		processFiles(files, dirFile)
 	} else {
+
+		if config.AbsPkgPath[:7] == "$GOPATH" {
+
+			gopath := os.Getenv("GOPATH")
+
+			if len(gopath) == 0 {
+				return nil, errors.New("$GOPATH could not be found; you're setup is not correct")
+			}
+
+			config.AbsPkgPath = gopath + config.AbsPkgPath[:7]
+		}
+
 		if !filepath.IsAbs(config.AbsPkgPath) {
 			return nil, errors.New("AbsPkgPath is required when not using static files otherwise the static package has no idea where to grab local files from when your package is used from within another package.")
 		}
