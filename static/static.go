@@ -54,15 +54,8 @@ func New(config *Config, dirFile *DirFile) (*Files, error) {
 		processFiles(files, dirFile)
 	} else {
 
-		if config.AbsPkgPath[:7] == "$GOPATH" {
-
-			gopath := os.Getenv("GOPATH")
-
-			if len(gopath) == 0 {
-				return nil, errors.New("$GOPATH could not be found; you're setup is not correct")
-			}
-
-			config.AbsPkgPath = gopath + config.AbsPkgPath[7:]
+		if strings.Contains(config.AbsPkgPath, "$") {
+			config.AbsPkgPath = os.ExpandEnv(config.AbsPkgPath)
 		}
 
 		if !filepath.IsAbs(config.AbsPkgPath) {

@@ -1,9 +1,11 @@
 Package statics
 ===============
 
+![Project status](https://img.shields.io/badge/version-1.7.0-green.svg)
 [![Build Status](https://semaphoreci.com/api/v1/projects/1b97afa9-77f3-43ff-ad26-749958500745/601363/badge.svg)](https://semaphoreci.com/joeybloggs/statics)
 [![Go Report Card](http://goreportcard.com/badge/go-playground/statics)](http://goreportcard.com/report/go-playground/statics)
 [![GoDoc](https://godoc.org/github.com/go-playground/statics/static?status.svg)](https://godoc.org/github.com/go-playground/statics/static)
+![License](https://img.shields.io/dub/l/vibe-d.svg)
 
 Package statics embeds static files into your go applications. It provides helper methods and objects to retrieve embeded files and serve via http.
 
@@ -16,15 +18,12 @@ It has the following **unique** features:
 
 Installation
 ------------
-Use go get.
 
-	go get github.com/go-playground/statics
-
-or to update
-
+```shell
 	go get -u github.com/go-playground/statics
+```
 
-Then import the validator package into your own code.
+Then import the statics package into your own code.
 
 	import "github.com/go-playground/statics"
 
